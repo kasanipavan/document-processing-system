@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\taugustj\\Development\\document-processing-system\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj": {}
+    "C:\\Users\\taugustj\\Development\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj": {}
   },
   "projects": {
-    "C:\\Users\\taugustj\\Development\\document-processing-system\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj": {
+    "C:\\Users\\taugustj\\Development\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\taugustj\\Development\\document-processing-system\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj",
+        "projectUniqueName": "C:\\Users\\taugustj\\Development\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj",
         "projectName": "DocumentProcessor.Tests",
-        "projectPath": "C:\\Users\\taugustj\\Development\\document-processing-system\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj",
+        "projectPath": "C:\\Users\\taugustj\\Development\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj",
         "packagesPath": "C:\\Users\\taugustj\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\taugustj\\Development\\document-processing-system\\document-processing-system\\tests\\DocumentProcessor.Tests\\obj\\",
+        "outputPath": "C:\\Users\\taugustj\\Development\\document-processing-system\\tests\\DocumentProcessor.Tests\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

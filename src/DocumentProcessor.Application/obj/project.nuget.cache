@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "QCdATFMpcR8=",
+  "dgSpecHash": "zbcCnUTmOhk=",
   "success": true,
-  "projectFilePath": "C:\\Users\\taugustj\\Development\\document-processing-system\\document-processing-system\\src\\DocumentProcessor.Application\\DocumentProcessor.Application.csproj",
+  "projectFilePath": "C:\\Users\\taugustj\\Development\\document-processing-system\\src\\DocumentProcessor.Application\\DocumentProcessor.Application.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\taugustj\\.nuget\\packages\\awssdk.bedrockruntime\\3.7.401\\awssdk.bedrockruntime.3.7.401.nupkg.sha512",
     "C:\\Users\\taugustj\\.nuget\\packages\\awssdk.core\\3.7.401.1\\awssdk.core.3.7.401.1.nupkg.sha512",

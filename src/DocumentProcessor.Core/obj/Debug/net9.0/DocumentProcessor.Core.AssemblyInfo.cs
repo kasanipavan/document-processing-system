@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DocumentProcessor.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+540c89075dd5889d2048322c6eb0a8f13d248c10")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+afb0890400c71e68db64fc6038ca21f769e42f79")]
 [assembly: System.Reflection.AssemblyProductAttribute("DocumentProcessor.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DocumentProcessor.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

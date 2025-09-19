@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Nc7two1t+sA=",
+  "dgSpecHash": "zuu2fo/pyTM=",
   "success": true,
-  "projectFilePath": "C:\\Users\\taugustj\\Development\\document-processing-system\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj",
+  "projectFilePath": "C:\\Users\\taugustj\\Development\\document-processing-system\\tests\\DocumentProcessor.Tests\\DocumentProcessor.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\taugustj\\.nuget\\packages\\coverlet.collector\\6.0.2\\coverlet.collector.6.0.2.nupkg.sha512",
     "C:\\Users\\taugustj\\.nuget\\packages\\microsoft.codecoverage\\17.12.0\\microsoft.codecoverage.17.12.0.nupkg.sha512",
