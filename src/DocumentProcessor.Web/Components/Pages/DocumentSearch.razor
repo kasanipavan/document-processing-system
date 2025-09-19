@@ -1,0 +1,419 @@
+@page "/search"
+@using DocumentProcessor.Core.Entities
+@using DocumentProcessor.Core.Interfaces
+@using Microsoft.EntityFrameworkCore
+@using System.Threading
+@inject IDocumentRepository DocumentRepository
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+@implements IDisposable
+
+<PageTitle>Document Search</PageTitle>
+
+<div class="container-fluid">
+    <h1>Document Search</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Search Input -->
+                <div class="col-md-6">
+                    <label class="form-label">Search Text</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Search documents..." 
+                               @bind="searchText" @bind:event="oninput" @onkeypress="@(async (e) => { if (e.Key == "Enter") await PerformSearch(); })">
+                        <button class="btn btn-primary" @onclick="PerformSearch">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Date Range -->
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" @bind="fromDate" @bind:event="oninput">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" @bind="toDate" @bind:event="oninput">
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+                <!-- Status Filter -->
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" @bind="selectedStatus">
+                        <option value="">All Statuses</option>
+                        @foreach (var status in Enum.GetValues<DocumentStatus>())
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Document Type Filter -->
+                <div class="col-md-3">
+                    <label class="form-label">Document Type</label>
+                    <select class="form-select" @bind="selectedType">
+                        <option value="">All Types</option>
+                        <option value="application/pdf">PDF</option>
+                        <option value="application/vnd.openxmlformats-officedocument.wordprocessingml.document">Word</option>
+                        <option value="text/plain">Text</option>
+                        <option value="image/jpeg">JPEG</option>
+                        <option value="image/png">PNG</option>
+                    </select>
+                </div>
+
+                <!-- Size Filter -->
+                <div class="col-md-3">
+                    <label class="form-label">File Size</label>
+                    <select class="form-select" @bind="selectedSize">
+                        <option value="">Any Size</option>
+                        <option value="small">&lt; 1 MB</option>
+                        <option value="medium">1 MB - 10 MB</option>
+                        <option value="large">10 MB - 50 MB</option>
+                        <option value="xlarge">&gt; 50 MB</option>
+                    </select>
+                </div>
+
+                <!-- Sort By -->
+                <div class="col-md-3">
+                    <label class="form-label">Sort By</label>
+                    <select class="form-select" @bind="sortBy" @bind:event="oninput" @onchange="PerformSearch">
+                        <option value="date-desc">Date (Newest First)</option>
+                        <option value="date-asc">Date (Oldest First)</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="size-asc">Size (Smallest First)</option>
+                        <option value="size-desc">Size (Largest First)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-12">
+                    <button class="btn btn-secondary" @onclick="ClearFilters">
+                        <i class="bi bi-x-circle"></i> Clear Filters
+                    </button>
+                    <button class="btn btn-primary ms-2" @onclick="PerformSearch">
+                        <i class="bi bi-funnel"></i> Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    @if (isSearching)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Searching...</span>
+            </div>
+            <p class="mt-2">Searching documents...</p>
+        </div>
+    }
+    else if (searchResults != null)
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    Search Results 
+                    <span class="badge bg-primary">@searchResults.Count() @(searchResults.Count() == 1 ? "document" : "documents") found</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                @if (!searchResults.Any())
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No documents found matching your search criteria.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Status</th>
+                                    <th>Upload Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var doc in searchResults)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a href="javascript:void(0)" @onclick="() => ViewDocument(doc.Id)">
+                                                <i class="bi bi-file-earmark-text"></i> @doc.FileName
+                                            </a>
+                                        </td>
+                                        <td>
+                                            @GetFileTypeIcon(doc.ContentType)
+                                            @GetFileTypeDisplay(doc.ContentType)
+                                        </td>
+                                        <td>@FormatFileSize(doc.FileSize)</td>
+                                        <td>
+                                            <span class="badge @GetStatusBadgeClass(doc.Status)">
+                                                @doc.Status
+                                            </span>
+                                        </td>
+                                        <td>@doc.UploadedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary" @onclick="() => ViewDocument(doc.Id)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger ms-1" @onclick="() => DeleteDocument(doc.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    @if (totalPages > 1)
+                    {
+                        <nav aria-label="Search results pagination">
+                            <ul class="pagination justify-content-center">
+                                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" href="javascript:void(0)" @onclick="() => ChangePage(currentPage - 1)">Previous</a>
+                                </li>
+                                @for (int i = 1; i <= totalPages; i++)
+                                {
+                                    var pageNum = i;
+                                    <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                        <a class="page-link" href="javascript:void(0)" @onclick="() => ChangePage(pageNum)">@pageNum</a>
+                                    </li>
+                                }
+                                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                    <a class="page-link" href="javascript:void(0)" @onclick="() => ChangePage(currentPage + 1)">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string searchText = "";
+    private DateTime? fromDate;
+    private DateTime? toDate;
+    private DocumentStatus? selectedStatus;
+    private string selectedType = "";
+    private string selectedSize = "";
+    private string sortBy = "date-desc";
+    private bool isSearching = false;
+    private IEnumerable<Document>? searchResults;
+    private int currentPage = 1;
+    private int pageSize = 20;
+    private int totalPages = 1;
+    private Timer? refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PerformSearch();
+        
+        // Set up auto-refresh every 10 seconds
+        refreshTimer = new Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await PerformSearch();
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    private async Task PerformSearch()
+    {
+        isSearching = true;
+        StateHasChanged();
+
+        try
+        {
+            // Get all documents for querying
+            var allDocuments = await DocumentRepository.GetAllAsync();
+            var query = allDocuments.AsQueryable();
+
+            // Apply text search
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                query = query.Where(d => d.FileName.Contains(searchText));
+            }
+
+            // Apply date filter
+            if (fromDate.HasValue)
+            {
+                query = query.Where(d => d.UploadedAt >= fromDate.Value);
+            }
+            if (toDate.HasValue)
+            {
+                var endDate = toDate.Value.AddDays(1);
+                query = query.Where(d => d.UploadedAt < endDate);
+            }
+
+            // Apply status filter
+            if (selectedStatus.HasValue)
+            {
+                query = query.Where(d => d.Status == selectedStatus.Value);
+            }
+
+            // Apply type filter
+            if (!string.IsNullOrEmpty(selectedType))
+            {
+                query = query.Where(d => d.ContentType == selectedType);
+            }
+
+            // Apply size filter
+            if (!string.IsNullOrEmpty(selectedSize))
+            {
+                query = selectedSize switch
+                {
+                    "small" => query.Where(d => d.FileSize < 1048576), // < 1MB
+                    "medium" => query.Where(d => d.FileSize >= 1048576 && d.FileSize < 10485760), // 1-10MB
+                    "large" => query.Where(d => d.FileSize >= 10485760 && d.FileSize < 52428800), // 10-50MB
+                    "xlarge" => query.Where(d => d.FileSize >= 52428800), // > 50MB
+                    _ => query
+                };
+            }
+
+            // Apply sorting
+            query = sortBy switch
+            {
+                "date-asc" => query.OrderBy(d => d.UploadedAt),
+                "date-desc" => query.OrderByDescending(d => d.UploadedAt),
+                "name-asc" => query.OrderBy(d => d.FileName),
+                "name-desc" => query.OrderByDescending(d => d.FileName),
+                "size-asc" => query.OrderBy(d => d.FileSize),
+                "size-desc" => query.OrderByDescending(d => d.FileSize),
+                _ => query.OrderByDescending(d => d.UploadedAt)
+            };
+
+            // Get total count for pagination
+            var totalCount = query.Count();
+            totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            // Apply pagination
+            searchResults = query
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Search error: {ex.Message}");
+            searchResults = new List<Document>();
+        }
+        finally
+        {
+            isSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearFilters()
+    {
+        searchText = "";
+        fromDate = null;
+        toDate = null;
+        selectedStatus = null;
+        selectedType = "";
+        selectedSize = "";
+        sortBy = "date-desc";
+        currentPage = 1;
+        _ = PerformSearch();
+    }
+
+    private async Task ChangePage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            await PerformSearch();
+        }
+    }
+
+    private void ViewDocument(Guid documentId)
+    {
+        Navigation.NavigateTo($"/document/{documentId}");
+    }
+
+    private async Task DeleteDocument(Guid documentId)
+    {
+        try
+        {
+            await DocumentRepository.DeleteAsync(documentId);
+            await PerformSearch();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Delete error: {ex.Message}");
+        }
+    }
+
+    private string GetFileTypeIcon(string contentType)
+    {
+        return contentType switch
+        {
+            "application/pdf" => "📄",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => "📝",
+            "text/plain" => "📃",
+            "image/jpeg" or "image/png" => "🖼️",
+            _ => "📎"
+        };
+    }
+
+    private string GetFileTypeDisplay(string contentType)
+    {
+        return contentType switch
+        {
+            "application/pdf" => "PDF",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => "Word",
+            "text/plain" => "Text",
+            "image/jpeg" => "JPEG",
+            "image/png" => "PNG",
+            _ => "Other"
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private string GetStatusBadgeClass(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Pending => "bg-warning",
+            DocumentStatus.Processing => "bg-info",
+            DocumentStatus.Processed => "bg-success",
+            DocumentStatus.Failed => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+    
+    public void Dispose()
+    {
+        refreshTimer?.Dispose();
+    }
+}

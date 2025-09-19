@@ -1,0 +1,87 @@
+-- =============================================
+-- Procedure 2: Get Documents with Full Details -- Documents
+-- =============================================
+CREATE PROCEDURE [dbo].[GetDocumentsWithDetails]
+    @IncludeDeleted BIT = 0,
+    @DocumentTypeId UNIQUEIDENTIFIER = NULL,
+    @MaxRecords INT = 200,	
+    @DocumentId UNIQUEIDENTIFIER = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        -- Document fields
+        doc.Id AS DocumentId,
+        doc.ContentType,
+        doc.CreatedAt AS DocumentCreatedAt,
+        doc.DeletedAt AS DocumentDeletedAt,
+        doc.DocumentTypeId,
+        doc.ExtractedText,
+        doc.FileExtension,
+        doc.FileName,
+        doc.FileSize,
+        doc.IsDeleted AS DocumentIsDeleted,
+        doc.OriginalFileName,
+        doc.ProcessedAt AS DocumentProcessedAt,
+        doc.S3Bucket,
+        doc.S3Key,
+        doc.Source AS DocumentSource,
+        doc.Status AS DocumentStatus,
+        doc.StoragePath,
+        doc.Summary AS DocumentSummary,
+        doc.UpdatedAt AS DocumentUpdatedAt,
+        doc.UploadedAt,
+        doc.UploadedBy,
+        doc.UploadedById,
+        
+        -- Document Type fields
+        dt.Id AS DocumentTypeId_Reference,
+        dt.Category AS DocumentTypeCategory,
+        dt.CreatedAt AS DocumentTypeCreatedAt,
+        dt.Description AS DocumentTypeDescription,
+        dt.FileExtensions AS AllowedFileExtensions,
+        dt.IsActive AS DocumentTypeIsActive,
+        dt.Keywords AS DocumentTypeKeywords,
+        dt.Name AS DocumentTypeName,
+        dt.Priority AS DocumentTypePriority,
+        dt.ProcessingRules,
+        dt.UpdatedAt AS DocumentTypeUpdatedAt,
+        
+        -- Document Metadata fields
+        meta.Id AS MetadataId,
+        meta.Author,
+        meta.CreatedAt AS MetadataCreatedAt,
+        meta.CreationDate AS DocumentCreationDate,
+        meta.CustomMetadata,
+        meta.DocumentId AS MetadataDocumentId,
+        meta.Keywords AS MetadataKeywords,
+        meta.Language AS DocumentLanguage,
+        meta.ModificationDate AS DocumentModificationDate,
+        meta.PageCount,
+        meta.Subject AS DocumentSubject,
+        meta.Title AS DocumentTitle,
+        meta.UpdatedAt AS MetadataUpdatedAt,
+        meta.WordCount,
+        meta.Tags AS DocumentTags
+        
+    FROM (
+        SELECT TOP (CASE WHEN @MaxRecords IS NULL THEN 2147483647 ELSE @MaxRecords END)
+            Id, ContentType, CreatedAt, DeletedAt, DocumentTypeId, ExtractedText,
+            FileExtension, FileName, FileSize, IsDeleted, OriginalFileName,
+            ProcessedAt, S3Bucket, S3Key, Source, Status, StoragePath,
+            Summary, UpdatedAt, UploadedAt, UploadedBy, UploadedById
+        FROM Documents 
+        WHERE (@IncludeDeleted = 1 OR IsDeleted = 0)
+            AND (@DocumentTypeId IS NULL OR DocumentTypeId = @DocumentTypeId)
+            AND (@DocumentId IS NULL OR Id = @DocumentId)
+        ORDER BY UploadedAt DESC
+    ) AS doc
+    
+    LEFT JOIN DocumentTypes dt ON doc.DocumentTypeId = dt.Id
+    LEFT JOIN DocumentMetadata meta ON doc.Id = meta.DocumentId
+    
+    ORDER BY doc.UploadedAt DESC;
+        
+    RETURN 0;
+END

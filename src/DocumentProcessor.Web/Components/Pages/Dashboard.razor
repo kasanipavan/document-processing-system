@@ -1,0 +1,606 @@
+@page "/"
+@page "/dashboard"
+@using DocumentProcessor.Core.Entities
+@using DocumentProcessor.Core.Interfaces
+@using DocumentProcessor.Infrastructure.Repositories
+@using DocumentProcessor.Application.Services
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.JSInterop
+@inject IDocumentRepository DocumentRepository
+@inject IUnitOfWork UnitOfWork
+@inject IBackgroundDocumentProcessingService BackgroundService
+@inject IDocumentProcessingService ProcessingService
+@inject ILogger<Dashboard> Logger
+@inject IJSRuntime JSRuntime
+@inject IConfiguration Configuration
+@rendermode InteractiveServer
+@implements IDisposable
+
+<PageTitle>Dashboard</PageTitle>
+
+<h1>Document Processing Dashboard</h1>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total Documents</h5>
+                <h2 class="display-4">@stats.TotalDocuments</h2>
+                <p class="card-text">All uploaded documents</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Processed</h5>
+                <h2 class="display-4">@stats.ProcessedDocuments</h2>
+                <p class="card-text">Successfully processed</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">In Queue</h5>
+                <h2 class="display-4">@stats.QueuedDocuments</h2>
+                <p class="card-text">Waiting to process</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">Failed</h5>
+                <h2 class="display-4">@stats.FailedDocuments</h2>
+                <p class="card-text">Processing failed</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Processing Activity (Last 7 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="activityChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Document Types</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="typeChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Recent Documents</h5>
+                <button class="btn btn-sm btn-primary" @onclick="RefreshData">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                @if (recentDocuments == null)
+                {
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else if (!recentDocuments.Any())
+                {
+                    <p class="text-muted">No documents found.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Status</th>
+                                    <th>Uploaded</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var doc in recentDocuments.Take(10))
+                                {
+                                    <tr>
+                                        <td>
+                                            <a href="/document/@doc.Id">@(string.IsNullOrEmpty(doc.FileName) ? "Unnamed Document" : doc.FileName)</a>
+                                        </td>
+                                        <td>@(string.IsNullOrEmpty(doc.ContentType) ? "Unknown" : doc.ContentType)</td>
+                                        <td>@FormatFileSize(doc.FileSize)</td>
+                                        <td>
+                                            <span class="badge @GetStatusBadgeClass(doc.Status)">
+                                                @doc.Status
+                                            </span>
+                                        </td>
+                                        <td>@doc.UploadedAt.ToString("MM/dd HH:mm")</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="/document/@doc.Id" class="btn btn-outline-primary">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                @if (doc.Status == DocumentStatus.Pending)
+                                                {
+                                                    <button class="btn btn-outline-success" 
+                                                            @onclick="() => ProcessDocument(doc.Id)">
+                                                        <i class="bi bi-play"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Processing Queue Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label>Queue Length: <strong>@queueLength</strong></label>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar @GetQueueProgressClass()" 
+                             role="progressbar" 
+                             style="width: @GetQueuePercentage()%"
+                             aria-valuenow="@queueLength" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            @queueLength / 100
+                        </div>
+                    </div>
+                </div>
+                
+                @if (processingQueue != null && processingQueue.Any())
+                {
+                    <h6>Currently Processing:</h6>
+                    <ul class="list-group">
+                        @foreach (var item in processingQueue.Take(5))
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>@item.DocumentName</span>
+                                <span class="badge bg-primary rounded-pill">@item.Priority</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted">No documents currently processing.</p>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>System Health</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Database Connection</span>
+                        <span class="badge bg-success">Healthy</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Storage Provider</span>
+                        <span class="badge bg-success">@storageProvider</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>AI Processor</span>
+                        <span class="badge bg-success">@aiProvider</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Background Service</span>
+                        <span class="badge @(queueLength > 0 ? "bg-success" : "bg-secondary")">
+                            @(queueLength > 0 ? "Active" : "Idle")
+                        </span>
+                    </div>
+                </div>
+                <hr />
+                <div class="mb-3">
+                    <label>Storage Usage</label>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-info" 
+                             role="progressbar" 
+                             style="width: @storageUsagePercent%">
+                            @FormatFileSize(storageUsed) / @FormatFileSize(storageTotal)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private DashboardStats stats = new();
+    private List<Document>? recentDocuments;
+    private List<QueueItemInfo> processingQueue = new();
+    private int queueLength = 0;
+    private string storageProvider = "LocalFileSystem";
+    private string aiProvider = "Amazon Bedrock";
+    private long storageUsed = 0;
+    private long storageTotal = 10737418240; // 10GB
+    private int storageUsagePercent => (int)((storageUsed / (double)storageTotal) * 100);
+    private System.Threading.Timer? refreshTimer;
+    private Dictionary<string, int> processingActivityData = new();
+    private Dictionary<string, int> documentTypeData = new();
+    private bool chartsInitialized = false;
+    private bool isRefreshing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+        
+        // Set up auto-refresh with proper async handling
+        refreshTimer = new System.Threading.Timer(
+            _ => _ = RefreshTimerCallback(),
+            null,
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(10));
+    }
+
+    private async Task RefreshTimerCallback()
+    {
+        if (isRefreshing)
+            return;
+            
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshData();
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in dashboard refresh timer");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || (!chartsInitialized && processingActivityData.Any()))
+        {
+            // Add delay to ensure Chart.js is loaded and DOM is ready
+            await Task.Delay(500);
+            
+            // Verify Chart.js is available
+            var chartAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof Chart !== 'undefined'");
+            if (!chartAvailable)
+            {
+                Logger.LogError("Chart.js is not loaded - charts will not display");
+                return;
+            }
+            
+            await InitializeCharts();
+            chartsInitialized = true;
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            // Load statistics
+            var allDocuments = await DocumentRepository.GetAllAsync();
+            stats.TotalDocuments = allDocuments.Count();
+            stats.ProcessedDocuments = allDocuments.Count(d =>
+                d.Status == DocumentStatus.Processed);
+            stats.QueuedDocuments = allDocuments.Count(d =>
+                d.Status == DocumentStatus.Queued || d.Status == DocumentStatus.Processing);
+            stats.FailedDocuments = allDocuments.Count(d => d.Status == DocumentStatus.Failed);
+
+            // Load recent documents
+            recentDocuments = allDocuments
+                .OrderByDescending(d => d.UploadedAt)
+                .Take(10)
+                .ToList();
+
+            // Calculate storage used
+            storageUsed = allDocuments.Sum(d => d.FileSize);
+
+            // Load queue status
+            queueLength = await BackgroundService.GetQueueLengthAsync();
+            
+            // Load processing queue items
+            var queuedDocs = allDocuments
+                .Where(d => d.Status == DocumentStatus.Queued || d.Status == DocumentStatus.Processing)
+                .Take(5)
+                .Select(d => new QueueItemInfo
+                {
+                    DocumentName = string.IsNullOrEmpty(d.FileName) ? "Unnamed Document" : d.FileName,
+                    Priority = ProcessingPriority.Normal
+                })
+                .ToList();
+            processingQueue = queuedDocs;
+
+            // Prepare processing activity data (last 7 days)
+            processingActivityData.Clear();
+            var last7Days = DateTime.UtcNow.AddDays(-7);
+            var processedLast7Days = allDocuments
+                .Where(d => d.ProcessedAt.HasValue && d.ProcessedAt.Value >= last7Days)
+                .GroupBy(d => d.ProcessedAt.Value.Date)
+                .ToDictionary(g => g.Key.ToString("MM/dd"), g => g.Count());
+
+            // Fill in missing days with 0
+            for (int i = 6; i >= 0; i--)
+            {
+                var date = DateTime.UtcNow.AddDays(-i).ToString("MM/dd");
+                if (!processedLast7Days.ContainsKey(date))
+                {
+                    processingActivityData[date] = 0;
+                }
+                else
+                {
+                    processingActivityData[date] = processedLast7Days[date];
+                }
+            }
+
+            // Prepare document type data
+            documentTypeData.Clear();
+            var documentTypes = await UnitOfWork.DocumentTypes.GetAllAsync();
+            Logger.LogInformation("Dashboard: Loaded {Count} document types from database", documentTypes.Count());
+            
+            foreach (var type in documentTypes)
+            {
+                var count = allDocuments.Count(d => d.DocumentTypeId == type.Id);
+                Logger.LogDebug("Dashboard: Document type '{TypeName}' has {Count} documents", type.Name, count);
+                if (count > 0)
+                {
+                    documentTypeData[type.Name] = count;
+                    Logger.LogInformation("Dashboard: Added document type '{TypeName}' with {Count} documents to chart", type.Name, count);
+                }
+            }
+            
+            Logger.LogInformation("Dashboard: Final document type chart data has {Count} items", documentTypeData.Count);
+
+            // Add uncategorized documents
+            var uncategorizedCount = allDocuments.Count(d => d.DocumentTypeId == null);
+            if (uncategorizedCount > 0)
+            {
+                documentTypeData["Uncategorized"] = uncategorizedCount;
+            }
+
+            // Update storage provider from configuration
+            var useS3 = Configuration.GetValue<bool>("DocumentStorage:UseS3");
+            storageProvider = useS3 ? "Amazon S3" : "Local FileSystem";
+
+            // Update AI provider from configuration
+            var useSimulated = Configuration.GetValue<bool>("BedrockOptions:UseSimulatedResponses");
+            aiProvider = useSimulated ? "Simulated" : "Amazon Bedrock";
+
+            // Update charts if already initialized
+            if (chartsInitialized)
+            {
+                await UpdateCharts();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading dashboard data");
+        }
+    }
+
+    private async Task InitializeCharts()
+    {
+        try
+        {
+            Logger.LogInformation("InitializeCharts called - Activity data: {ActivityCount}, Document type data: {TypeCount}", 
+                processingActivityData.Count, documentTypeData.Count);
+
+            // Initialize processing activity chart
+            var activityLabels = processingActivityData.Keys.ToArray();
+            var activityValues = processingActivityData.Values.ToArray();
+            
+            Logger.LogInformation("Initializing activity chart with {Count} data points", activityLabels.Length);
+            await JSRuntime.InvokeVoidAsync("initializeChart",
+                "activityChart",
+                "line",
+                activityLabels,
+                "Documents Processed",
+                activityValues,
+                "#36a2eb");
+
+            // Initialize document type chart
+            if (documentTypeData.Any())
+            {
+                var typeLabels = documentTypeData.Keys.ToArray();
+                var typeValues = documentTypeData.Values.ToArray();
+                var colors = GenerateColors(typeLabels.Length);
+                
+                Logger.LogInformation("Initializing document type chart with labels: {Labels}, values: {Values}", 
+                    string.Join(",", typeLabels), string.Join(",", typeValues));
+                
+                await JSRuntime.InvokeVoidAsync("initializeChart",
+                    "typeChart",
+                    "doughnut",
+                    typeLabels,
+                    "Document Count",
+                    typeValues,
+                    colors);
+            }
+            else
+            {
+                Logger.LogWarning("No document type data available for chart initialization");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing charts");
+        }
+    }
+
+    private async Task UpdateCharts()
+    {
+        try
+        {
+            // Update processing activity chart
+            var activityLabels = processingActivityData.Keys.ToArray();
+            var activityValues = processingActivityData.Values.ToArray();
+            
+            await JSRuntime.InvokeVoidAsync("updateChart",
+                "activityChart",
+                activityLabels,
+                activityValues);
+
+            // Update document type chart
+            if (documentTypeData.Any())
+            {
+                var typeLabels = documentTypeData.Keys.ToArray();
+                var typeValues = documentTypeData.Values.ToArray();
+                
+                await JSRuntime.InvokeVoidAsync("updateChart",
+                    "typeChart",
+                    typeLabels,
+                    typeValues);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating charts");
+        }
+    }
+
+    private string[] GenerateColors(int count)
+    {
+        var colors = new[]
+        {
+            "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+            "#FF9F40", "#FF6384", "#C9CBCF", "#4BC0C0", "#FF6384"
+        };
+        
+        var result = new string[count];
+        for (int i = 0; i < count; i++)
+        {
+            result[i] = colors[i % colors.Length];
+        }
+        return result;
+    }
+
+    private async Task RefreshData()
+    {
+        if (isRefreshing)
+            return;
+            
+        isRefreshing = true;
+        try
+        {
+            await LoadDashboardData();
+            StateHasChanged();
+        }
+        finally
+        {
+            isRefreshing = false;
+        }
+    }
+
+    private async Task ProcessDocument(Guid documentId)
+    {
+        try
+        {
+            await ProcessingService.QueueDocumentForProcessingAsync(documentId);
+            await RefreshData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error queuing document {DocumentId}", documentId);
+        }
+    }
+
+    private string GetStatusBadgeClass(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Pending => "bg-secondary",
+            DocumentStatus.Queued => "bg-info",
+            DocumentStatus.Processing => "bg-primary",
+            DocumentStatus.Processed => "bg-success",
+            DocumentStatus.Failed => "bg-danger",
+            _ => "bg-light"
+        };
+    }
+
+    private string GetQueueProgressClass()
+    {
+        if (queueLength == 0) return "bg-success";
+        if (queueLength < 25) return "bg-info";
+        if (queueLength < 50) return "bg-warning";
+        return "bg-danger";
+    }
+
+    private int GetQueuePercentage()
+    {
+        return Math.Min(100, queueLength);
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size = size / 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    public void Dispose()
+    {
+        refreshTimer?.Dispose();
+        _ = JSRuntime.InvokeVoidAsync("destroyChart", "activityChart");
+        _ = JSRuntime.InvokeVoidAsync("destroyChart", "typeChart");
+    }
+
+    private class DashboardStats
+    {
+        public int TotalDocuments { get; set; }
+        public int ProcessedDocuments { get; set; }
+        public int QueuedDocuments { get; set; }
+        public int FailedDocuments { get; set; }
+    }
+
+    private class QueueItemInfo
+    {
+        public string DocumentName { get; set; } = string.Empty;
+        public ProcessingPriority Priority { get; set; }
+    }
+}

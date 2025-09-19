@@ -1,0 +1,86 @@
+CREATE PROCEDURE [dbo].[GetProcessingQueueWithDocuments]
+    @MaxRecords INT = 100,
+    @IncludeRetryReady BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    -- Get processing queue items that are either pending or ready for retry
+    SELECT
+        -- Processing Queue fields
+        pq.Id AS QueueId,
+        pq.CompletedAt AS QueueCompletedAt,
+        pq.CreatedAt AS QueueCreatedAt,
+        pq.DocumentId,
+        pq.ErrorDetails,
+        pq.ErrorMessage,
+        pq.MaxRetries,
+        pq.NextRetryAt,
+        pq.Priority AS QueuePriority,
+        pq.ProcessingType,
+        pq.ProcessorId,
+        pq.ResultData,
+        pq.RetryCount,
+        pq.StartedAt AS QueueStartedAt,
+        pq.Status AS QueueStatus,
+        pq.UpdatedAt AS QueueUpdatedAt,
+        -- Document fields
+        doc.Id AS DocumentId,
+        doc.ContentType,
+        doc.CreatedAt AS DocumentCreatedAt,
+        doc.DeletedAt AS DocumentDeletedAt,
+        doc.DocumentTypeId,
+        doc.ExtractedText,
+        doc.FileExtension,
+        doc.FileName,
+        doc.FileSize,
+        doc.IsDeleted AS DocumentIsDeleted,
+        doc.OriginalFileName,
+        doc.ProcessedAt AS DocumentProcessedAt,
+        doc.S3Bucket,
+        doc.S3Key,
+        doc.Source AS DocumentSource,
+        doc.Status AS DocumentStatus,
+        doc.StoragePath,
+        doc.Summary AS DocumentSummary,
+        doc.UpdatedAt AS DocumentUpdatedAt,
+        doc.UploadedAt,
+        doc.UploadedBy,
+        doc.UploadedById,
+        -- Document Type fields
+        dt.Id AS DocumentTypeId,
+        dt.Category AS DocumentTypeCategory,
+        dt.CreatedAt AS DocumentTypeCreatedAt,
+        dt.Description AS DocumentTypeDescription,
+        dt.FileExtensions AS AllowedFileExtensions,
+        dt.IsActive AS DocumentTypeIsActive,
+        dt.Keywords AS DocumentTypeKeywords,
+        dt.Name AS DocumentTypeName,
+        dt.Priority AS DocumentTypePriority,
+        dt.ProcessingRules,
+        dt.UpdatedAt AS DocumentTypeUpdatedAt
+    FROM (
+        -- Get top N processing queue items that need processing
+        SELECT TOP (@MaxRecords)
+            Id, CompletedAt, CreatedAt, DocumentId, ErrorDetails, ErrorMessage,
+            MaxRetries, NextRetryAt, Priority, ProcessingType, ProcessorId,
+            ResultData, RetryCount, StartedAt, Status, UpdatedAt
+        FROM ProcessingQueues pq_inner
+        WHERE
+            pq_inner.Status = 0  -- Pending status
+            OR (
+                @IncludeRetryReady = 1
+                AND pq_inner.Status = 4  -- Failed/Retry status
+                AND pq_inner.NextRetryAt <= GETUTCDATE()
+            )
+        ORDER BY
+            pq_inner.Priority DESC,
+            pq_inner.CreatedAt ASC
+    ) AS pq
+    INNER JOIN Documents doc ON pq.DocumentId = doc.Id
+        AND doc.IsDeleted = 0  -- Only active documents
+    LEFT JOIN DocumentTypes dt ON doc.DocumentTypeId = dt.Id
+    ORDER BY
+        pq.Priority DESC,
+        pq.CreatedAt ASC;
+    RETURN 0;
+END

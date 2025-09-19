@@ -1,0 +1,376 @@
+@page "/background-tasks"
+@using DocumentProcessor.Application.Services
+@using DocumentProcessor.Core.Interfaces
+@using DocumentProcessor.Core.Entities
+@using DocumentProcessor.Infrastructure.Repositories
+@inject IBackgroundDocumentProcessingService BackgroundService
+@inject IBackgroundTaskQueue TaskQueue
+@inject IUnitOfWork UnitOfWork
+@inject IDocumentRepository DocumentRepository
+@inject ILogger<BackgroundTasks> Logger
+@rendermode InteractiveServer
+@implements IDisposable
+
+<PageTitle>Background Tasks</PageTitle>
+
+<h1>Background Task Monitor</h1>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Queue Length</h5>
+                <p class="card-text display-4">@queueLength</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Processing</h5>
+                <p class="card-text display-4">@processingCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Completed</h5>
+                <p class="card-text display-4">@completedCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Failed</h5>
+                <p class="card-text display-4">@failedCount</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Tasks</h5>
+            </div>
+            <div class="card-body">
+                @if (!processingQueueItems.Any())
+                {
+                    <p class="text-muted">No tasks in the system yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Document</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Retry Count</th>
+                                    <th>Created</th>
+                                    <th>Started</th>
+                                    <th>Error</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in processingQueueItems.Take(20))
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (item.Document != null)
+                                            {
+                                                <a href="/document/@item.Document.Id">
+                                                    @(string.IsNullOrEmpty(item.Document.FileName) ? "Unnamed" : item.Document.FileName)
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span>Unknown</span>
+                                            }
+                                        </td>
+                                        <td>@item.ProcessingType</td>
+                                        <td>
+                                            <span class="badge @GetQueueStatusBadgeClass(item.Status)">
+                                                @item.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">@item.Priority</span>
+                                        </td>
+                                        <td>@item.RetryCount / @item.MaxRetries</td>
+                                        <td>@item.CreatedAt.ToString("MM/dd HH:mm:ss")</td>
+                                        <td>
+                                            @if (item.StartedAt.HasValue)
+                                            {
+                                                @item.StartedAt.Value.ToString("MM/dd HH:mm:ss")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(item.ErrorMessage))
+                                            {
+                                                <span class="text-danger" title="@item.ErrorMessage">
+                                                    @(item.ErrorMessage.Length > 30 ? item.ErrorMessage.Substring(0, 30) + "..." : item.ErrorMessage)
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (item.Status == ProcessingStatus.Failed && item.RetryCount < item.MaxRetries)
+                                            {
+                                                <button class="btn btn-sm btn-warning"
+                                                        @onclick="() => RetryQueueItem(item.Id)">
+                                                    Retry
+                                                </button>
+                                            }
+                                            @if (item.Status == ProcessingStatus.InProgress)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status">
+                                                    <span class="visually-hidden">Processing...</span>
+                                                </span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <button class="btn btn-primary" @onclick="RefreshStatus">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+        <button class="btn btn-secondary" @onclick="SimulateTask">
+            <i class="bi bi-plus-circle"></i> Simulate Task
+        </button>
+    </div>
+</div>
+
+@code {
+    private int queueLength = 0;
+    private int processingCount = 0;
+    private int completedCount = 0;
+    private int failedCount = 0;
+    private List<ProcessingQueue> processingQueueItems = new();
+    private System.Threading.Timer? refreshTimer;
+    private bool isRefreshing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStatus();
+        
+        // Set up auto-refresh timer with proper async handling
+        refreshTimer = new System.Threading.Timer(
+            _ => _ = RefreshTimerCallback(),
+            null,
+            TimeSpan.FromSeconds(3),
+            TimeSpan.FromSeconds(3));
+    }
+
+    private async Task RefreshTimerCallback()
+    {
+        // Prevent overlapping refreshes
+        if (isRefreshing)
+            return;
+            
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshStatus();
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in refresh timer callback");
+        }
+    }
+
+    private async Task RefreshStatus()
+    {
+        if (isRefreshing)
+            return;
+            
+        isRefreshing = true;
+        
+        try
+        {
+            Logger.LogDebug("RefreshStatus started at {Time}", DateTime.Now);
+            
+            // Get all processing queue items from database
+            // Get pending items first, then other statuses
+            var pendingItems = await UnitOfWork.ProcessingQueues.GetPendingAsync(1000);
+            var inProgressItems = await UnitOfWork.ProcessingQueues.GetByStatusAsync(ProcessingStatus.InProgress);
+            var completedItems = await UnitOfWork.ProcessingQueues.GetByStatusAsync(ProcessingStatus.Completed);
+            var failedItems = await UnitOfWork.ProcessingQueues.GetByStatusAsync(ProcessingStatus.Failed);
+            var retryingItems = await UnitOfWork.ProcessingQueues.GetByStatusAsync(ProcessingStatus.Retrying);
+            
+            var allQueueItems = pendingItems
+                .Concat(inProgressItems)
+                .Concat(completedItems)
+                .Concat(failedItems)
+                .Concat(retryingItems);
+                
+            processingQueueItems = allQueueItems
+                .OrderByDescending(q => q.Priority)
+                .ThenBy(q => q.CreatedAt)
+                .ToList();
+
+            // Load related documents
+            foreach (var item in processingQueueItems)
+            {
+                if (item.DocumentId != Guid.Empty)
+                {
+                    item.Document = await DocumentRepository.GetByIdAsync(item.DocumentId);
+                }
+            }
+
+            // Calculate counts
+            var newQueueLength = processingQueueItems.Count(q =>
+                q.Status == ProcessingStatus.Pending ||
+                q.Status == ProcessingStatus.Retrying);
+            
+            var newProcessingCount = processingQueueItems.Count(q =>
+                q.Status == ProcessingStatus.InProgress);
+            
+            var newCompletedCount = processingQueueItems.Count(q =>
+                q.Status == ProcessingStatus.Completed);
+            
+            var newFailedCount = processingQueueItems.Count(q =>
+                q.Status == ProcessingStatus.Failed);
+            
+            // Log if values changed
+            if (newQueueLength != queueLength || newProcessingCount != processingCount ||
+                newCompletedCount != completedCount || newFailedCount != failedCount)
+            {
+                Logger.LogDebug("Status changed - Queue: {Queue}, Processing: {Processing}, Completed: {Completed}, Failed: {Failed}",
+                    newQueueLength, newProcessingCount, newCompletedCount, newFailedCount);
+            }
+            
+            queueLength = newQueueLength;
+            processingCount = newProcessingCount;
+            completedCount = newCompletedCount;
+            failedCount = newFailedCount;
+            
+            StateHasChanged();
+            Logger.LogDebug("RefreshStatus completed, StateHasChanged called");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error refreshing task status");
+        }
+        finally
+        {
+            isRefreshing = false;
+        }
+    }
+
+    private async Task SimulateTask()
+    {
+        try
+        {
+            // Create a test document
+            var testDoc = new Document
+            {
+                Id = Guid.NewGuid(),
+                FileName = $"test-doc-{DateTime.Now:yyyyMMddHHmmss}.txt",
+                ContentType = "text/plain",
+                FileSize = 1024,
+                Status = DocumentStatus.Pending,
+                UploadedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                StoragePath = $"test/{Guid.NewGuid()}.txt",
+                OriginalFileName = "test.txt",
+                FileExtension = ".txt"
+            };
+            
+            await DocumentRepository.AddAsync(testDoc);
+            await UnitOfWork.SaveChangesAsync();
+
+            // Queue for processing
+            var queueItem = new ProcessingQueue
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = testDoc.Id,
+                ProcessingType = ProcessingType.Summarization,
+                Priority = Random.Shared.Next(1, 10),
+                Status = ProcessingStatus.Pending,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                MaxRetries = 3,
+                RetryCount = 0
+            };
+
+            await UnitOfWork.ProcessingQueues.AddAsync(queueItem);
+            await UnitOfWork.SaveChangesAsync();
+
+            await RefreshStatus();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error simulating task");
+        }
+    }
+
+    private async Task RetryQueueItem(Guid queueItemId)
+    {
+        try
+        {
+            var item = await UnitOfWork.ProcessingQueues.GetByIdAsync(queueItemId);
+            if (item != null && item.Status == ProcessingStatus.Failed && item.RetryCount < item.MaxRetries)
+            {
+                item.Status = ProcessingStatus.Retrying;
+                item.NextRetryAt = DateTime.UtcNow.AddSeconds(30);
+                item.UpdatedAt = DateTime.UtcNow;
+                
+                await UnitOfWork.ProcessingQueues.UpdateAsync(item);
+                await UnitOfWork.SaveChangesAsync();
+                
+                await RefreshStatus();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error retrying queue item {QueueItemId}", queueItemId);
+        }
+    }
+
+    private string GetQueueStatusBadgeClass(ProcessingStatus status)
+    {
+        return status switch
+        {
+            ProcessingStatus.Pending => "bg-secondary",
+            ProcessingStatus.InProgress => "bg-primary",
+            ProcessingStatus.Completed => "bg-success",
+            ProcessingStatus.Failed => "bg-danger",
+            ProcessingStatus.Retrying => "bg-warning",
+            ProcessingStatus.Cancelled => "bg-dark",
+            ProcessingStatus.Skipped => "bg-info",
+            _ => "bg-light"
+        };
+    }
+
+    public void Dispose()
+    {
+        refreshTimer?.Dispose();
+    }
+}

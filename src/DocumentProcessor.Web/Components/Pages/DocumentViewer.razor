@@ -1,0 +1,1129 @@
+@page "/document/{DocumentId:guid}"
+@using DocumentProcessor.Core.Entities
+@using DocumentProcessor.Core.Interfaces
+@using DocumentProcessor.Application.Services
+@using DocumentProcessor.Infrastructure.Repositories
+@using System.Text.Json
+@using Microsoft.JSInterop
+@using System.IO
+@inject IDocumentRepository DocumentRepository
+@inject IDocumentMetadataRepository MetadataRepository
+@inject IDocumentProcessingService ProcessingService
+@inject NavigationManager Navigation
+@inject ILogger<DocumentViewer> Logger
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Document Details</PageTitle>
+
+@if (document == null)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/documents">Documents</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@document.OriginalFileName</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>@document.OriginalFileName</h4>
+                        <span class="badge @GetStatusBadgeClass(document.Status)">@document.Status</span>
+                    </div>
+                    <div class="card-body">
+                        @* Modern Document Preview Section *@
+                        @if (IsPreviewable())
+                        {
+                            <div class="modern-preview-section mb-5">
+                                <div class="preview-header d-flex align-items-center mb-3">
+                                    <div class="preview-icon-wrapper me-3">
+                                        <i class="bi @(IsImageFile() ? "bi-image-fill" : IsAudioFile() ? "bi-music-note-beamed" : "bi-file-earmark-pdf-fill") text-primary fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0 fw-bold">Document Preview</h5>
+                                        <small class="text-muted">@(IsImageFile() ? "Image Preview" : IsAudioFile() ? "Audio Player" : "PDF Document")</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="preview-content-wrapper">
+                                    @if (IsImageFile())
+                                    {
+                                        <div class="modern-image-preview">
+                                            @if (!previewError)
+                                            {
+                                                <div class="image-container position-relative">
+                                                    <img src="@GetPreviewUrl()"
+                                                         alt="@document.OriginalFileName"
+                                                         class="preview-image"
+                                                         @onerror="HandlePreviewError"
+                                                         @onload="HandlePreviewLoad" />
+                                                    <div class="image-overlay">
+                                                        <button class="btn btn-light btn-sm" onclick="window.open('@GetPreviewUrl()', '_blank')">
+                                                            <i class="bi bi-arrows-fullscreen me-1"></i> View Full Size
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="preview-error-container">
+                                                    <i class="bi bi-image-alt fs-1 text-muted"></i>
+                                                    <p class="mt-3 mb-0">Unable to load image preview</p>
+                                                    <small class="text-muted">The image file may be corrupted or in an unsupported format</small>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else if (IsAudioFile())
+                                    {
+                                        @if (!previewError)
+                                        {
+                                            <div class="modern-audio-preview">
+                                                <div class="audio-player-wrapper">
+                                                    <div class="audio-icon-bg">
+                                                        <i class="bi bi-music-note-list fs-1"></i>
+                                                    </div>
+                                                    <div class="audio-info mb-3">
+                                                        <h6 class="mb-1">@document.OriginalFileName</h6>
+                                                        <small class="text-muted">Audio File • @FormatFileSize(document.FileSize)</small>
+                                                    </div>
+                                                    <audio controls class="modern-audio-player" @onerror="HandlePreviewError">
+                                                        <source src="@GetPreviewUrl()" type="audio/mpeg">
+                                                        Your browser does not support the audio element.
+                                                    </audio>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="preview-error-container">
+                                                <i class="bi bi-music-note fs-1 text-muted"></i>
+                                                <p class="mt-3 mb-0">Unable to load audio file</p>
+                                                <small class="text-muted">The audio file may be corrupted or in an unsupported format</small>
+                                            </div>
+                                        }
+                                    }
+                                    else if (IsPdfFile())
+                                    {
+                                        @if (!previewError)
+                                        {
+                                            <div class="modern-pdf-preview">
+                                                <div class="pdf-viewer-wrapper">
+                                                    <div class="pdf-controls mb-2">
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="window.open('@GetPreviewUrl()', '_blank')">
+                                                            <i class="bi bi-box-arrow-up-right me-1"></i> Open in New Tab
+                                                        </button>
+                                                        <span class="ms-3 text-muted">
+                                                            <i class="bi bi-file-earmark-pdf me-1"></i>
+                                                            @document.OriginalFileName • @FormatFileSize(document.FileSize)
+                                                        </span>
+                                                    </div>
+                                                    <embed src="@GetPreviewUrl()"
+                                                           type="application/pdf"
+                                                           class="pdf-embed"
+                                                           @onerror="HandlePreviewError" />
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="preview-error-container">
+                                                <i class="bi bi-file-earmark-pdf fs-1 text-muted"></i>
+                                                <p class="mt-3 mb-0">Unable to load PDF preview</p>
+                                                <small class="text-muted">The PDF file may be corrupted or your browser may not support inline PDF viewing</small>
+                                                <button class="btn btn-sm btn-primary mt-3" onclick="window.open('@GetPreviewUrl()', '_blank')">
+                                                    <i class="bi bi-download me-1"></i> Download PDF
+                                                </button>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(document.ExtractedText))
+                        {
+                            <div class="document-content">
+                                <h5>Extracted Content</h5>
+                                <div class="border p-3 bg-light" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">
+                                    <pre style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; margin: 0;">@document.ExtractedText</pre>
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(document.Summary))
+                        {
+                            <div class="document-summary mt-4">
+                                <div class="card">
+                                    <div class="card-header bg-gradient">
+                                        <h5 class="mb-0"><i class="bi bi-robot me-2"></i>AI Generated Summary</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-light" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">
+                                            <i class="bi bi-info-circle me-2 text-info"></i>
+                                            @document.Summary
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (processingResult != null)
+                        {
+                            <div class="processing-results mt-4">
+                                <h5><i class="bi bi-cpu me-2"></i>AI Processing Results</h5>
+                                
+                                @if (processingResult.Classification != null)
+                                {
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-primary text-white">
+                                            <h6 class="mb-0"><i class="bi bi-tags-fill me-2"></i>Document Classification</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row mb-2">
+                                                <div class="col-md-6">
+                                                    <strong>Primary Category:</strong>
+                                                    <span class="badge bg-success ms-2 fs-6">@processingResult.Classification.PrimaryCategory</span>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    @if (processingResult.Classification.CategoryConfidences.Any())
+                                                    {
+                                                        <strong>Confidence:</strong>
+                                                        @foreach (var conf in processingResult.Classification.CategoryConfidences)
+                                                        {
+                                                            <div class="progress mt-1" style="height: 20px;">
+                                                                <div class="progress-bar" role="progressbar"
+                                                                     style="width: @((conf.Value * 100).ToString("F0"))%"
+                                                                     aria-valuenow="@((conf.Value * 100).ToString("F0"))"
+                                                                     aria-valuemin="0" aria-valuemax="100">
+                                                                    @((conf.Value * 100).ToString("F0"))%
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    }
+                                                </div>
+                                            </div>
+                                            @if (processingResult.Classification.Tags.Any())
+                                            {
+                                                <div class="mt-2">
+                                                    <strong>Tags:</strong>
+                                                    @foreach (var tag in processingResult.Classification.Tags)
+                                                    {
+                                                        <span class="badge bg-info me-1">@tag</span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (processingResult.Intent != null)
+                                {
+                                    <div class="card mb-3 border-warning">
+                                        <div class="card-header bg-warning">
+                                            <h6 class="mb-0"><i class="bi bi-bullseye me-2"></i>Document Intent & Actions</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="bi bi-flag-fill text-primary fs-4 me-3"></i>
+                                                        <div>
+                                                            <strong>Primary Intent:</strong>
+                                                            <span class="badge bg-primary ms-2 fs-6">@processingResult.Intent.PrimaryIntent</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="text-center">
+                                                        <strong>Confidence</strong>
+                                                        <div class="fs-2 text-success">@((processingResult.Intent.Confidence * 100).ToString("F0"))%</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(processingResult.Intent.SuggestedAction))
+                                            {
+                                                <div class="alert alert-info mt-3 mb-0">
+                                                    <i class="bi bi-lightbulb me-2"></i>
+                                                    <strong>Suggested Action:</strong> @processingResult.Intent.SuggestedAction
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (processingResult.Extraction != null && processingResult.Extraction.Entities.Any())
+                                {
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0"><i class="bi bi-search me-2"></i>Extracted Entities</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                @foreach (var entity in processingResult.Extraction.Entities.OrderByDescending(e => e.Confidence))
+                                                {
+                                                    <div class="col-md-6 mb-3">
+                                                        <div class="border rounded p-2">
+                                                            <div class="d-flex justify-content-between align-items-start">
+                                                                <div>
+                                                                    <span class="badge bg-secondary">@entity.Type</span>
+                                                                    <div class="mt-1"><strong>@entity.Value</strong></div>
+                                                                </div>
+                                                                <div class="text-end">
+                                                                    <small class="text-muted">Confidence</small>
+                                                                    <div class="badge bg-@(entity.Confidence > 0.8 ? "success" : entity.Confidence > 0.6 ? "warning" : "danger")">
+                                                                        @((entity.Confidence * 100).ToString("F0"))%
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                            @if (processingResult.Extraction.ExtractedData.Any())
+                                            {
+                                                <hr />
+                                                <h6>Additional Extracted Data</h6>
+                                                <table class="table table-sm table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Field</th>
+                                                            <th>Value</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var data in processingResult.Extraction.ExtractedData)
+                                                        {
+                                                            <tr>
+                                                                <td><strong>@data.Key</strong></td>
+                                                                <td>@data.Value</td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (processingResult.Summary != null && processingResult.Summary.KeyPoints.Any())
+                                {
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-success text-white">
+                                            <h6 class="mb-0"><i class="bi bi-list-check me-2"></i>Key Points</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="list-group list-group-flush">
+                                                @foreach (var point in processingResult.Summary.KeyPoints)
+                                                {
+                                                    <li class="list-group-item">
+                                                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                                        @point
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Document Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-5">File Name:</dt>
+                            <dd class="col-sm-7">@document.OriginalFileName</dd>
+
+                            <dt class="col-sm-5">File Type:</dt>
+                            <dd class="col-sm-7">@document.FileExtension</dd>
+
+                            <dt class="col-sm-5">File Size:</dt>
+                            <dd class="col-sm-7">@FormatFileSize(document.FileSize)</dd>
+
+                            <dt class="col-sm-5">Upload Date:</dt>
+                            <dd class="col-sm-7">@document.UploadedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                            <dt class="col-sm-5">Uploaded By:</dt>
+                            <dd class="col-sm-7">@document.UploadedBy</dd>
+
+                            @if (document.ProcessedAt.HasValue)
+                            {
+                                <dt class="col-sm-5">Processed Date:</dt>
+                                <dd class="col-sm-7">@document.ProcessedAt.Value.ToString("yyyy-MM-dd HH:mm")</dd>
+                            }
+
+                            <dt class="col-sm-5">Source:</dt>
+                            <dd class="col-sm-7">@document.Source</dd>
+
+                            @if (document.DocumentType != null)
+                            {
+                                <dt class="col-sm-5">Document Type:</dt>
+                                <dd class="col-sm-7">@document.DocumentType.Name</dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (document.Status == DocumentStatus.Pending || document.Status == DocumentStatus.Failed)
+                        {
+                            <button class="btn btn-primary w-100 mb-2" @onclick="ProcessDocument" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                }
+                                Process Document
+                            </button>
+                        }
+
+                        <button class="btn btn-outline-secondary w-100 mb-2" @onclick="DownloadDocument">
+                            <i class="bi bi-download"></i> Download
+                        </button>
+
+                        <button class="btn btn-outline-info w-100 mb-2" @onclick="ViewMetadata">
+                            <i class="bi bi-info-circle"></i> View Metadata
+                        </button>
+
+                        @if (document.Status == DocumentStatus.Processed)
+                        {
+                            <button class="btn btn-outline-success w-100 mb-2" @onclick="ExportResults">
+                                <i class="bi bi-file-earmark-arrow-down"></i> Export Results
+                            </button>
+                        }
+
+                        <button class="btn btn-outline-danger w-100" @onclick="DeleteDocument">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+
+                @if (document.Classifications?.Any() == true)
+                {
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Classifications</h5>
+                        </div>
+                        <div class="card-body">
+                            @foreach (var classification in document.Classifications)
+                            {
+                                <div class="mb-2">
+                                    <span class="badge bg-primary">@classification.DocumentType?.Name</span>
+                                    <small class="text-muted">(@((classification.ConfidenceScore * 100).ToString("F0"))%)</small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (documentMetadata?.Tags != null && documentMetadata.Tags.Any())
+                {
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Custom Tags</h5>
+                        </div>
+                        <div class="card-body">
+                            @foreach (var tag in documentMetadata.Tags)
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">@tag.Key</small>
+                                    <span class="badge bg-secondary">@tag.Value</span>
+                                </div>
+                            }
+                            <div class="mt-3">
+                                <a href="/metadata/@DocumentId" class="btn btn-sm btn-outline-primary w-100">
+                                    <i class="bi bi-pencil-square me-1"></i>Edit Tags
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    /* Modern Preview Section Styles */
+    .modern-preview-section {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .modern-preview-section:hover {
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .preview-header {
+        border-bottom: 2px solid rgba(0, 123, 255, 0.1);
+        padding-bottom: 15px;
+    }
+
+    .preview-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white !important;
+    }
+
+    .preview-icon-wrapper i {
+        color: white !important;
+    }
+
+    .preview-content-wrapper {
+        margin-top: 20px;
+    }
+
+    /* Modern Image Preview Styles */
+    .modern-image-preview {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 200px;
+    }
+
+    .image-container {
+        position: relative;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s ease;
+        max-width: 100%;
+        display: inline-block;
+    }
+
+    .image-container:hover {
+        transform: scale(1.02);
+    }
+
+    .preview-image {
+        display: block;
+        max-width: 600px;
+        max-height: 600px;
+        width: auto;
+        height: auto;
+        border-radius: 10px;
+    }
+
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        border-radius: 10px;
+    }
+
+    .image-container:hover .image-overlay {
+        opacity: 1;
+    }
+
+    /* Modern Audio Preview Styles */
+    .modern-audio-preview {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .audio-player-wrapper {
+        text-align: center;
+    }
+
+    .audio-icon-bg {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 20px rgba(102, 126, 234, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
+        }
+    }
+
+    .audio-info {
+        margin: 20px 0;
+    }
+
+    .modern-audio-player {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.1));
+    }
+
+    /* Modern PDF Preview Styles */
+    .modern-pdf-preview {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .pdf-viewer-wrapper {
+        width: 100%;
+    }
+
+    .pdf-controls {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .pdf-embed {
+        width: 100%;
+        height: 600px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Error Container Styles */
+    .preview-error-container {
+        text-align: center;
+        padding: 40px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .preview-error-container i {
+        color: #dee2e6 !important;
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+        .preview-image {
+            max-width: 100%;
+        }
+
+        .modern-preview-section {
+            padding: 15px;
+        }
+
+        .audio-icon-bg {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .pdf-embed {
+            height: 400px;
+        }
+    }
+</style>
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteConfirmation)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the document "<strong>@document?.OriginalFileName</strong>"?</p>
+                    <p class="text-danger">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid DocumentId { get; set; }
+
+    private Document? document;
+    private DocumentProcessor.Core.Entities.DocumentMetadata? documentMetadata;
+    private DocumentProcessingResult? processingResult;
+    private bool isProcessing = false;
+    private bool showDeleteConfirmation = false;
+    private bool previewError = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocument();
+        
+        // Log diagnostic information
+        if (document != null)
+        {
+            Logger.LogInformation($"Document loaded: ID={document.Id}, FileName={document.OriginalFileName}, StoragePath={document.StoragePath}");
+            
+            // Check if file exists on disk
+            if (!string.IsNullOrEmpty(document.StoragePath))
+            {
+                // Try different possible paths
+                var possiblePaths = new[]
+                {
+                    document.StoragePath,
+                    Path.Combine("uploads", document.StoragePath),
+                    Path.Combine(Directory.GetCurrentDirectory(), document.StoragePath),
+                    Path.Combine(Directory.GetCurrentDirectory(), "uploads", document.StoragePath)
+                };
+                
+                foreach (var path in possiblePaths)
+                {
+                    if (File.Exists(path))
+                    {
+                        Logger.LogInformation($"File found at: {path}");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task LoadDocument()
+    {
+        try
+        {
+            // Reset preview error state when loading a new document
+            previewError = false;
+            
+            document = await DocumentRepository.GetByIdAsync(DocumentId);
+            if (document == null)
+            {
+                Navigation.NavigateTo("/documents");
+                return;
+            }
+
+            // Load document metadata including tags
+            documentMetadata = await MetadataRepository.GetByDocumentIdAsync(DocumentId);
+
+            // Load stored intent data from the Classification table if document is processed
+            if (document.Status == DocumentStatus.Processed && document.Classifications?.Any() == true)
+            {
+                var classification = document.Classifications.FirstOrDefault();
+                if (classification != null && !string.IsNullOrEmpty(classification.ExtractedIntents))
+                {
+                    try
+                    {
+                        // Try to deserialize the stored intent data
+                        var storedIntent = JsonSerializer.Deserialize<DocumentIntentResult>(classification.ExtractedIntents);
+                        if (storedIntent != null)
+                        {
+                            // Create a processing result to display the stored data
+                            processingResult = new DocumentProcessingResult
+                            {
+                                DocumentId = document.Id,
+                                Success = true,
+                                Intent = storedIntent
+                            };
+
+                            // Also deserialize classification data if available
+                            if (!string.IsNullOrEmpty(classification.AIResponse))
+                            {
+                                processingResult.Classification = JsonSerializer.Deserialize<DocumentClassificationResult>(classification.AIResponse);
+                            }
+
+                            // Deserialize entities if available
+                            if (!string.IsNullOrEmpty(classification.ExtractedEntities))
+                            {
+                                var entities = JsonSerializer.Deserialize<List<ExtractedEntity>>(classification.ExtractedEntities);
+                                if (entities != null)
+                                {
+                                    processingResult.Extraction = new DocumentExtractionResult
+                                    {
+                                        Entities = entities
+                                    };
+                                }
+                            }
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to deserialize stored intent data for document {DocumentId}", DocumentId);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document {DocumentId}", DocumentId);
+        }
+    }
+
+    private async Task ProcessDocument()
+    {
+        if (document == null || isProcessing) return;
+
+        isProcessing = true;
+        try
+        {
+            processingResult = await ProcessingService.ProcessDocumentAsync(DocumentId);
+            await LoadDocument(); // Reload to get updated status
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing document {DocumentId}", DocumentId);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task DownloadDocument()
+    {
+        if (!string.IsNullOrEmpty(document?.StoragePath))
+        {
+            try
+            {
+                // Check if file exists on disk
+                if (File.Exists(document.StoragePath))
+                {
+                    // Read file from disk
+                    var fileBytes = await File.ReadAllBytesAsync(document.StoragePath);
+                    var base64Content = Convert.ToBase64String(fileBytes);
+                    
+                    // Determine content type based on file extension
+                    var contentType = GetContentType(document.FileExtension);
+                    
+                    // Use JavaScript to trigger download
+                    await JS.InvokeAsync<bool>("fileOperations.downloadFromBase64",
+                        document.OriginalFileName,
+                        base64Content,
+                        contentType);
+                    
+                    Logger.LogInformation("Document downloaded successfully: {DocumentId}", DocumentId);
+                }
+                else
+                {
+                    Logger.LogWarning("File not found on disk for document {DocumentId}: {StoragePath}",
+                        DocumentId, document.StoragePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error downloading document {DocumentId}", DocumentId);
+            }
+        }
+        else
+        {
+            Logger.LogWarning("No storage path available for document {DocumentId}", DocumentId);
+        }
+    }
+
+    private void ViewMetadata()
+    {
+        Navigation.NavigateTo($"/metadata/{DocumentId}");
+    }
+
+    private async Task ExportResults()
+    {
+        if (processingResult != null)
+        {
+            try
+            {
+                // Create export data object
+                var exportData = new
+                {
+                    DocumentInfo = new
+                    {
+                        document?.Id,
+                        document?.OriginalFileName,
+                        document?.FileExtension,
+                        FileSize = document?.FileSize,
+                        UploadedAt = document?.UploadedAt,
+                        ProcessedAt = document?.ProcessedAt,
+                        Status = document?.Status.ToString(),
+                        Source = document?.Source,
+                        ExtractedText = document?.ExtractedText,
+                        Summary = document?.Summary
+                    },
+                    ProcessingResults = new
+                    {
+                        processingResult?.Classification,
+                        processingResult?.Intent,
+                        processingResult?.Extraction,
+                        processingResult?.Summary
+                    },
+                    Metadata = documentMetadata?.Tags,
+                    ExportedAt = DateTime.UtcNow
+                };
+
+                // Serialize to JSON with indentation
+                var jsonOptions = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                var jsonContent = JsonSerializer.Serialize(exportData, jsonOptions);
+                
+                // Generate filename with timestamp
+                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                var fileName = $"{Path.GetFileNameWithoutExtension(document?.OriginalFileName ?? "document")}_results_{timestamp}.json";
+                
+                // Use JavaScript to trigger download
+                await JS.InvokeAsync<bool>("fileOperations.exportJson", fileName, jsonContent);
+                
+                Logger.LogInformation("Results exported successfully for document {DocumentId}", DocumentId);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error exporting results for document {DocumentId}", DocumentId);
+            }
+        }
+        else
+        {
+            Logger.LogWarning("No processing results available for document {DocumentId}", DocumentId);
+        }
+    }
+
+    private async Task DeleteDocument()
+    {
+        showDeleteConfirmation = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirmation = false;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (document != null)
+        {
+            try
+            {
+                showDeleteConfirmation = false;
+                
+                // Delete the document from the database
+                await DocumentRepository.DeleteAsync(document.Id);
+                
+                // Delete the physical file if it exists
+                if (!string.IsNullOrEmpty(document.StoragePath) && File.Exists(document.StoragePath))
+                {
+                    try
+                    {
+                        File.Delete(document.StoragePath);
+                        Logger.LogInformation("Physical file deleted for document {DocumentId}: {StoragePath}",
+                            DocumentId, document.StoragePath);
+                    }
+                    catch (Exception fileEx)
+                    {
+                        Logger.LogError(fileEx, "Error deleting physical file for document {DocumentId}: {StoragePath}",
+                            DocumentId, document.StoragePath);
+                    }
+                }
+                
+                Logger.LogInformation("Document {DocumentId} deleted successfully", DocumentId);
+                
+                // Navigate back to documents list
+                Navigation.NavigateTo("/documents");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting document {DocumentId}", DocumentId);
+                showDeleteConfirmation = false;
+            }
+        }
+    }
+
+    private string GetStatusBadgeClass(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Pending => "bg-secondary",
+            DocumentStatus.Queued => "bg-info",
+            DocumentStatus.Processing => "bg-primary",
+            DocumentStatus.Processed => "bg-success",
+            DocumentStatus.Failed => "bg-danger",
+            _ => "bg-light"
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size = size / 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private string GetContentType(string fileExtension)
+    {
+        return fileExtension?.ToLower() switch
+        {
+            ".pdf" => "application/pdf",
+            ".doc" => "application/msword",
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".xls" => "application/vnd.ms-excel",
+            ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".ppt" => "application/vnd.ms-powerpoint",
+            ".pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            ".txt" => "text/plain",
+            ".csv" => "text/csv",
+            ".json" => "application/json",
+            ".xml" => "application/xml",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".bmp" => "image/bmp",
+            ".svg" => "image/svg+xml",
+            ".mp3" => "audio/mpeg",
+            ".zip" => "application/zip",
+            ".rar" => "application/x-rar-compressed",
+            ".7z" => "application/x-7z-compressed",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private bool IsPreviewable()
+    {
+        if (document == null) return false;
+        return IsImageFile() || IsAudioFile() || IsPdfFile();
+    }
+
+    private bool IsImageFile()
+    {
+        if (document == null) return false;
+        var extension = document.FileExtension?.ToLower();
+        return extension == ".jpg" || extension == ".jpeg" || extension == ".png" ||
+               extension == ".gif" || extension == ".bmp" || extension == ".svg";
+    }
+
+    private bool IsAudioFile()
+    {
+        if (document == null) return false;
+        var extension = document.FileExtension?.ToLower();
+        return extension == ".mp3";
+    }
+    
+    private bool IsPdfFile()
+    {
+        if (document == null) return false;
+        var extension = document.FileExtension?.ToLower();
+        return extension == ".pdf";
+    }
+
+    private string GetPreviewUrl()
+    {
+        if (document == null || string.IsNullOrEmpty(document.StoragePath))
+        {
+            Logger.LogWarning("Document or StoragePath is null/empty");
+            return string.Empty;
+        }
+
+        try
+        {
+            // The StoragePath from LocalFileSystemProvider is in format: "yyyy/MM/dd/filename_timestamp_guid.ext"
+            // We need to prepend "/uploads/" to make it a valid web URL
+            
+            var storagePath = document.StoragePath.Replace("\\", "/");
+            Logger.LogInformation($"Original StoragePath: {document.StoragePath}");
+            
+            // Check if it already starts with "uploads/"
+            if (storagePath.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            {
+                // Already has uploads prefix, just ensure it starts with /
+                var url = "/" + storagePath;
+                Logger.LogInformation($"Path already has uploads prefix. Generated URL: {url}");
+                return url;
+            }
+            
+            // Check if it's a date-based path (yyyy/MM/dd/filename)
+            // This is the standard format from LocalFileSystemProvider
+            if (System.Text.RegularExpressions.Regex.IsMatch(storagePath, @"^\d{4}/\d{2}/\d{2}/"))
+            {
+                // Prepend uploads/ to the path
+                var url = "/uploads/" + storagePath;
+                Logger.LogInformation($"Date-based path detected. Generated URL: {url}");
+                return url;
+            }
+            
+            // Check if it contains uploads folder anywhere in the path (full path scenario)
+            var uploadsIndex = storagePath.IndexOf("uploads/", StringComparison.OrdinalIgnoreCase);
+            if (uploadsIndex >= 0)
+            {
+                var relativePath = storagePath.Substring(uploadsIndex);
+                var url = "/" + relativePath;
+                Logger.LogInformation($"Full path with uploads folder. Generated URL: {url}");
+                return url;
+            }
+            
+            // Fallback - assume it needs uploads/ prefix
+            var fallbackUrl = "/uploads/" + storagePath;
+            Logger.LogInformation($"Fallback case. Generated URL: {fallbackUrl}");
+            return fallbackUrl;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, $"Error generating preview URL for document {document.Id}");
+            return string.Empty;
+        }
+    }
+
+    private void HandlePreviewError()
+    {
+        previewError = true;
+        Logger.LogWarning($"Failed to load preview for document: {document?.OriginalFileName} with path: {document?.StoragePath}, URL: {GetPreviewUrl()}");
+        StateHasChanged();
+    }
+
+    private void HandlePreviewLoad()
+    {
+        Logger.LogInformation($"Successfully loaded preview for document: {document?.OriginalFileName}");
+    }
+}

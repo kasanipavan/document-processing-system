@@ -1,0 +1,561 @@
+@page "/metadata"
+@page "/metadata/{documentId:guid}"
+@using DocumentProcessor.Core.Interfaces
+@using DocumentProcessor.Core.Entities
+@using DocumentProcessor.Infrastructure.Repositories
+@inject IDocumentMetadataRepository MetadataRepository
+@inject IDocumentRepository DocumentRepository
+@inject ILogger<DocumentMetadata> Logger
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Document Metadata</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Document Metadata</h1>
+        <button class="btn btn-secondary" @onclick="NavigateBack">
+            <i class="bi bi-arrow-left me-2"></i>Back
+        </button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (_metadata == null && DocumentId.HasValue)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            No metadata found for this document. The document may still be processing.
+        </div>
+    }
+    else if (DocumentId.HasValue && _metadata != null)
+    {
+        <!-- Single Document Metadata View -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Document Information</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (_document != null)
+                        {
+                            <div class="row mb-3">
+                                <div class="col-sm-3 fw-bold">File Name:</div>
+                                <div class="col-sm-9">@_document.FileName</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-3 fw-bold">Content Type:</div>
+                                <div class="col-sm-9">@_document.ContentType</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-3 fw-bold">File Size:</div>
+                                <div class="col-sm-9">@GetFileSize(_document.FileSize)</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-3 fw-bold">Status:</div>
+                                <div class="col-sm-9">
+                                    <span class="badge bg-@GetStatusColor(_document.Status)">@_document.Status</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Extracted Metadata</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-sm-3 fw-bold">Title:</div>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" @bind="_metadata.Title" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-3 fw-bold">Author:</div>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" @bind="_metadata.Author" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-3 fw-bold">Subject:</div>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" @bind="_metadata.Subject" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-3 fw-bold">Keywords:</div>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" @bind="_metadata.Keywords" @bind:event="oninput" 
+                                       placeholder="Comma-separated keywords" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-3 fw-bold">Language:</div>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" @bind="_metadata.Language" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-3 fw-bold">Page Count:</div>
+                            <div class="col-sm-9">
+                                <input type="number" class="form-control" @bind="_metadata.PageCount" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-3 fw-bold">Creation Date:</div>
+                            <div class="col-sm-9">
+                                <input type="datetime-local" class="form-control" @bind="_metadata.CreationDate" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-sm-3 fw-bold">Last Modified:</div>
+                            <div class="col-sm-9">
+                                <input type="datetime-local" class="form-control" @bind="_metadata.ModificationDate" @bind:event="oninput" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Custom Tags</h5>
+                        <button class="btn btn-sm btn-primary" @onclick="ShowAddTagModal">
+                            <i class="bi bi-plus-circle me-1"></i>Add Tag
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        @if (_metadata.Tags != null && _metadata.Tags.Any())
+                        {
+                            <div class="row">
+                                @foreach (var tag in _metadata.Tags)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <div class="input-group">
+                                            <span class="input-group-text">@tag.Key</span>
+                                            <input type="text" class="form-control" value="@tag.Value" readonly />
+                                            <button class="btn btn-outline-danger" @onclick="() => RemoveTag(tag.Key)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No custom tags added yet.</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button class="btn btn-success" @onclick="SaveMetadata">
+                        <i class="bi bi-save me-2"></i>Save Changes
+                    </button>
+                    <button class="btn btn-secondary" @onclick="NavigateBack">Cancel</button>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">System Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <small class="text-muted">Document ID:</small><br />
+                            <code>@_metadata.DocumentId</code>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Metadata ID:</small><br />
+                            <code>@_metadata.Id</code>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Created At:</small><br />
+                            @_metadata.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Updated At:</small><br />
+                            @_metadata.UpdatedAt.ToString("MMM dd, yyyy HH:mm")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- All Documents Metadata List View -->
+        <div class="card">
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" placeholder="Search by keywords, title, author..." 
+                               @bind="_searchQuery" @bind:event="oninput" @onkeyup="@(async () => await SearchMetadata())" />
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" @bind="_filterLanguage" @bind:event="onchange">
+                            <option value="">All Languages</option>
+                            @foreach (var lang in _availableLanguages)
+                            {
+                                <option value="@lang.Key">@lang.Key (@lang.Value)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" @bind="_filterAuthor" @bind:event="onchange">
+                            <option value="">All Authors</option>
+                            @foreach (var author in _topAuthors)
+                            {
+                                <option value="@author.Key">@author.Key (@author.Value)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                @if (_allMetadata.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Document</th>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Language</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var meta in _allMetadata)
+                                {
+                                    <tr>
+                                        <td>@meta.Document?.FileName</td>
+                                        <td>@(string.IsNullOrEmpty(meta.Title) ? "-" : meta.Title)</td>
+                                        <td>@(string.IsNullOrEmpty(meta.Author) ? "-" : meta.Author)</td>
+                                        <td>@(string.IsNullOrEmpty(meta.Language) ? "-" : meta.Language)</td>
+                                        <td>@meta.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary" @onclick="() => ViewMetadata(meta.DocumentId)">
+                                                <i class="bi bi-eye"></i> View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        No metadata records found. Upload and process documents to see metadata here.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Add Tag Modal -->
+@if (_showAddTagModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Custom Tag</h5>
+                    <button type="button" class="btn-close" @onclick="HideAddTagModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tag Name</label>
+                        <input type="text" class="form-control" @bind="_newTagKey" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tag Value</label>
+                        <input type="text" class="form-control" @bind="_newTagValue" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideAddTagModal">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="AddTag">Add Tag</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showSuccessMessage)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-success text-white">
+                <i class="bi bi-check-circle me-2"></i>
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close btn-close-white" @onclick="() => _showSuccessMessage = false"></button>
+            </div>
+            <div class="toast-body">
+                Metadata saved successfully!
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? DocumentId { get; set; }
+
+    private DocumentProcessor.Core.Entities.DocumentMetadata? _metadata;
+    private Document? _document;
+    private List<DocumentProcessor.Core.Entities.DocumentMetadata> _allMetadata = new();
+    private Dictionary<string, int> _topAuthors = new();
+    private Dictionary<string, int> _availableLanguages = new();
+    
+    private bool _isLoading = true;
+    private bool _showAddTagModal = false;
+    private bool _showSuccessMessage = false;
+    
+    private string _newTagKey = "";
+    private string _newTagValue = "";
+    private string _searchQuery = "";
+    private string _filterLanguage = "";
+    private string _filterAuthor = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadData();
+        // Watch for filter changes
+        StateHasChanged();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+
+            if (DocumentId.HasValue)
+            {
+                // Load specific document metadata
+                _metadata = await MetadataRepository.GetByDocumentIdAsync(DocumentId.Value);
+                _document = await DocumentRepository.GetByIdAsync(DocumentId.Value);
+                
+                if (_metadata == null && _document != null)
+                {
+                    // Create new metadata if document exists but has no metadata yet
+                    _metadata = new DocumentProcessor.Core.Entities.DocumentMetadata
+                    {
+                        Id = Guid.NewGuid(),
+                        DocumentId = DocumentId.Value,
+                        Title = _document.FileName,
+                        Tags = new Dictionary<string, string>(), // Initialize empty tags dictionary
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    
+                    // Save the new metadata immediately so it exists in the database
+                    await MetadataRepository.AddAsync(_metadata);
+                }
+            }
+            else
+            {
+                // Load all metadata for list view
+                await LoadAllMetadata();
+                _topAuthors = await MetadataRepository.GetTopAuthorsAsync();
+                _availableLanguages = await MetadataRepository.GetLanguageDistributionAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading metadata");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadAllMetadata()
+    {
+        var allMetadata = await MetadataRepository.GetAllAsync();
+        _allMetadata = allMetadata.ToList();
+
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(_filterLanguage))
+        {
+            _allMetadata = _allMetadata.Where(m => m.Language == _filterLanguage).ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(_filterAuthor))
+        {
+            _allMetadata = _allMetadata.Where(m => m.Author == _filterAuthor).ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            var searchResults = await MetadataRepository.SearchByKeywordsAsync(_searchQuery);
+            _allMetadata = searchResults.ToList();
+        }
+    }
+
+    private async Task SearchMetadata()
+    {
+        if (!string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            var results = await MetadataRepository.SearchByKeywordsAsync(_searchQuery);
+            _allMetadata = results.ToList();
+        }
+        else
+        {
+            await LoadAllMetadata();
+        }
+    }
+
+    private async Task SaveMetadata()
+    {
+        if (_metadata != null)
+        {
+            try
+            {
+                // Ensure Tags is initialized
+                if (_metadata.Tags == null)
+                {
+                    _metadata.Tags = new Dictionary<string, string>();
+                }
+                
+                // Check if metadata exists in database
+                var existing = await MetadataRepository.GetByDocumentIdAsync(_metadata.DocumentId);
+                
+                if (existing == null)
+                {
+                    // Create new metadata
+                    await MetadataRepository.AddAsync(_metadata);
+                }
+                else
+                {
+                    // Update existing metadata
+                    await MetadataRepository.UpdateAsync(_metadata);
+                }
+                
+                _showSuccessMessage = true;
+                StateHasChanged();
+                
+                // Hide success message after 3 seconds
+                await Task.Delay(3000);
+                _showSuccessMessage = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error saving metadata: {Message}", ex.Message);
+            }
+        }
+    }
+
+    private void ShowAddTagModal()
+    {
+        _showAddTagModal = true;
+        _newTagKey = "";
+        _newTagValue = "";
+    }
+
+    private void HideAddTagModal()
+    {
+        _showAddTagModal = false;
+    }
+
+    private async Task AddTag()
+    {
+        if (!string.IsNullOrWhiteSpace(_newTagKey) && !string.IsNullOrWhiteSpace(_newTagValue) && _metadata != null)
+        {
+            // Ensure Tags dictionary is initialized
+            if (_metadata.Tags == null)
+            {
+                _metadata.Tags = new Dictionary<string, string>();
+            }
+            
+            // Add tag to metadata
+            _metadata.Tags[_newTagKey] = _newTagValue;
+            
+            // Save to database
+            await MetadataRepository.AddTagAsync(_metadata.Id, _newTagKey, _newTagValue);
+            
+            // Reload metadata to ensure we have the latest data
+            await LoadData();
+            
+            HideAddTagModal();
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemoveTag(string key)
+    {
+        if (_metadata != null)
+        {
+            // Remove tag from metadata
+            _metadata.Tags?.Remove(key);
+            
+            // Save to database
+            await MetadataRepository.RemoveTagAsync(_metadata.Id, key);
+            
+            // Reload metadata to ensure we have the latest data
+            await LoadData();
+            
+            StateHasChanged();
+        }
+    }
+
+    private void ViewMetadata(Guid documentId)
+    {
+        Navigation.NavigateTo($"/metadata/{documentId}");
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/documents");
+    }
+
+    private string GetFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        int order = 0;
+        double size = bytes;
+        
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private string GetStatusColor(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Pending => "warning",
+            DocumentStatus.Queued => "primary",
+            DocumentStatus.Processing => "info",
+            DocumentStatus.Processed => "success",
+            DocumentStatus.Failed => "danger",
+            _ => "secondary"
+        };
+    }
+}

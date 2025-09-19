@@ -1,0 +1,600 @@
+@page "/documents"
+@using DocumentProcessor.Core.Interfaces
+@using DocumentProcessor.Core.Entities
+@using DocumentProcessor.Infrastructure.Repositories
+@using System.Threading
+@inject IDocumentRepository DocumentRepository
+@inject IDocumentSourceProvider DocumentSource
+@inject ILogger<DocumentList> Logger
+@inject NavigationManager Navigation
+@inject IServiceProvider ServiceProvider
+@rendermode InteractiveServer
+@implements IDisposable
+
+<PageTitle>Document List</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Documents</h1>
+        <a href="/upload" class="btn btn-primary">
+            <i class="bi bi-upload me-2"></i>Upload New Document
+        </a>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Search documents..." 
+                           @bind="_searchQuery" @bind:event="oninput" @onkeyup="@(async () => await SearchDocuments())">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" @bind="_selectedStatus" @bind:event="onchange">
+                        <option value="">All Status</option>
+                        <option value="@DocumentStatus.Pending">Pending</option>
+                        <option value="@DocumentStatus.Processing">Processing</option>
+                        <option value="@DocumentStatus.Processed">Processed</option>
+                        <option value="@DocumentStatus.Failed">Failed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" @bind="_sortBy" @bind:event="onchange">
+                        <option value="date-desc">Newest First</option>
+                        <option value="date-asc">Oldest First</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="size-asc">Size (Small to Large)</option>
+                        <option value="size-desc">Size (Large to Small)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-secondary w-100" @onclick="ResetFilters">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Grid/List View Toggle -->
+    <div class="d-flex justify-content-end mb-3">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary @(_viewMode == "grid" ? "active" : "")"
+                    @onclick="@(() => _viewMode = "grid")">
+                <i class="bi bi-grid-3x3-gap"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary @(_viewMode == "list" ? "active" : "")"
+                    @onclick="@(() => _viewMode = "list")">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    @if (_isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!_filteredDocuments.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle me-2"></i>
+            No documents found. <a href="/upload">Upload your first document</a>
+        </div>
+    }
+    else
+    {
+        @if (_viewMode == "grid")
+        {
+            <!-- Grid View -->
+            <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+                @foreach (var doc in _pagedDocuments)
+                {
+                    <div class="col">
+                        <div class="card h-100 document-card" @onclick="() => ViewDocument(doc)" @onclick:stopPropagation="false">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <i class="bi @GetFileIcon(doc.ContentType) fs-2 text-primary"></i>
+                                    <div class="dropdown" @onclick:stopPropagation="true">
+                                        <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" @onclick="() => ViewDocument(doc)" @onclick:stopPropagation="true">
+                                                <i class="bi bi-eye me-2"></i>View
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" @onclick="() => DownloadDocument(doc)" @onclick:stopPropagation="true">
+                                                <i class="bi bi-download me-2"></i>Download
+                                            </a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" href="#" @onclick="() => DeleteDocument(doc)" @onclick:stopPropagation="true">
+                                                <i class="bi bi-trash me-2"></i>Delete
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <h6 class="card-title text-truncate" title="@doc.FileName">@doc.FileName</h6>
+                                <p class="card-text small text-muted">
+                                    @GetFileSize(doc.FileSize) • @doc.CreatedAt.ToString("MMM dd, yyyy")
+                                </p>
+                                <span class="badge bg-@GetStatusColor(doc.Status)">@doc.Status</span>
+                                @if (doc.DocumentType != null)
+                                {
+                                    <span class="badge bg-info ms-1">@doc.DocumentType.Name</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- List View -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">
+                                <input type="checkbox" class="form-check-input" @onchange="SelectAll">
+                            </th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Size</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Created</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var doc in _pagedDocuments)
+                        {
+                            <tr @onclick="() => ViewDocument(doc)" style="cursor: pointer;">
+                                <td @onclick:stopPropagation="true">
+                                    <input type="checkbox" class="form-check-input"
+                                           checked="@_selectedDocuments.Contains(doc.Id)"
+                                           @onchange="() => ToggleSelection(doc.Id)">
+                                </td>
+                                <td>
+                                    <i class="bi @GetFileIcon(doc.ContentType) me-2"></i>
+                                    @doc.FileName
+                                </td>
+                                <td>@doc.ContentType</td>
+                                <td>@GetFileSize(doc.FileSize)</td>
+                                <td>
+                                    <span class="badge bg-@GetStatusColor(doc.Status)">@doc.Status</span>
+                                </td>
+                                <td>@doc.CreatedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                <td @onclick:stopPropagation="true">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary" @onclick="() => ViewDocument(doc)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success" @onclick="() => DownloadDocument(doc)">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" @onclick="() => DeleteDocument(doc)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <!-- Pagination -->
+        @if (_totalPages > 1)
+        {
+            <nav aria-label="Document pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => ChangePage(_currentPage - 1)">Previous</button>
+                    </li>
+                    @for (int i = 1; i <= _totalPages; i++)
+                    {
+                        var pageNumber = i;
+                        <li class="page-item @(_currentPage == pageNumber ? "active" : "")">
+                            <button class="page-link" @onclick="() => ChangePage(pageNumber)">@pageNumber</button>
+                        </li>
+                    }
+                    <li class="page-item @(_currentPage == _totalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => ChangePage(_currentPage + 1)">Next</button>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+
+    <!-- Bulk Actions Bar -->
+    @if (_selectedDocuments.Any())
+    {
+        <div class="position-fixed bottom-0 start-50 translate-middle-x mb-3">
+            <div class="card shadow">
+                <div class="card-body d-flex align-items-center">
+                    <span class="me-3">@_selectedDocuments.Count selected</span>
+                    <button class="btn btn-sm btn-success me-2" @onclick="BulkDownload">
+                        <i class="bi bi-download me-1"></i>Download
+                    </button>
+                    <button class="btn btn-sm btn-danger me-2" @onclick="BulkDelete">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                    <button class="btn btn-sm btn-secondary" @onclick="ClearSelection">Clear</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .document-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+
+    .document-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+</style>
+
+@code {
+    private List<Document> _documents = new();
+    private List<Document> _filteredDocuments = new();
+    private List<Document> _pagedDocuments = new();
+    private HashSet<Guid> _selectedDocuments = new();
+    
+    private bool _isLoading = true;
+    private string _searchQuery = "";
+    private DocumentStatus? _selectedStatus;
+    private string _sortBy = "date-desc";
+    private string _viewMode = "list";
+    
+    private int _currentPage = 1;
+    private int _pageSize = 12;
+    private int _totalPages = 1;
+    
+    private Timer? _refreshTimer;
+    private bool _isRefreshing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocuments();
+        
+        // Set up auto-refresh every 5 seconds to check for processing updates
+        _refreshTimer = new Timer(
+            _ => _ = RefreshTimerCallback(),
+            null,
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(5));
+    }
+
+    private async Task RefreshTimerCallback()
+    {
+        if (_isRefreshing)
+            return;
+            
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                // Don't show loading spinner during auto-refresh
+                _isRefreshing = true;
+                try
+                {
+                    var documents = (await DocumentRepository.GetAllAsync()).ToList();
+                    
+                    // Only update if documents have changed
+                    if (!documents.SequenceEqual(_documents))
+                    {
+                        _documents = documents;
+                        await ApplyFilters();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error refreshing documents");
+                }
+                finally
+                {
+                    _isRefreshing = false;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in document list refresh timer");
+        }
+    }
+
+    private async Task LoadDocuments()
+    {
+        if (_isRefreshing)
+            return;
+            
+        _isRefreshing = true;
+        try
+        {
+            // Only show loading spinner on initial load, not on refresh
+            if (!_documents.Any())
+            {
+                _isLoading = true;
+                StateHasChanged();
+            }
+            
+            _documents = (await DocumentRepository.GetAllAsync()).ToList();
+            await ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading documents");
+        }
+        finally
+        {
+            _isLoading = false;
+            _isRefreshing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        await Task.Run(() =>
+        {
+            var filteredDocuments = _documents.AsEnumerable();
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                filteredDocuments = filteredDocuments.Where(d =>
+                    d.FileName.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Apply status filter
+            if (_selectedStatus.HasValue)
+            {
+                filteredDocuments = filteredDocuments.Where(d => d.Status == _selectedStatus.Value);
+            }
+
+            // Apply sorting
+            filteredDocuments = _sortBy switch
+            {
+                "date-asc" => filteredDocuments.OrderBy(d => d.CreatedAt),
+                "date-desc" => filteredDocuments.OrderByDescending(d => d.CreatedAt),
+                "name-asc" => filteredDocuments.OrderBy(d => d.FileName),
+                "name-desc" => filteredDocuments.OrderByDescending(d => d.FileName),
+                "size-asc" => filteredDocuments.OrderBy(d => d.FileSize),
+                "size-desc" => filteredDocuments.OrderByDescending(d => d.FileSize),
+                _ => filteredDocuments.OrderByDescending(d => d.CreatedAt)
+            };
+
+            _filteredDocuments = filteredDocuments.ToList();
+
+            // Calculate pagination
+            _totalPages = (int)Math.Ceiling(_filteredDocuments.Count() / (double)_pageSize);
+            _currentPage = Math.Min(_currentPage, Math.Max(1, _totalPages));
+
+            // Apply pagination
+            _pagedDocuments = _filteredDocuments
+                .Skip((_currentPage - 1) * _pageSize)
+                .Take(_pageSize)
+                .ToList();
+        });
+
+        StateHasChanged();
+    }
+
+    private async Task SearchDocuments()
+    {
+        _currentPage = 1;
+        await ApplyFilters();
+    }
+
+    private async Task FilterDocuments()
+    {
+        _currentPage = 1;
+        await ApplyFilters();
+    }
+
+    private async Task SortDocuments()
+    {
+        await ApplyFilters();
+    }
+
+    private async Task ResetFilters()
+    {
+        _searchQuery = "";
+        _selectedStatus = null;
+        _sortBy = "date-desc";
+        _currentPage = 1;
+        await ApplyFilters();
+    }
+
+    private void ChangePage(int page)
+    {
+        if (page >= 1 && page <= _totalPages)
+        {
+            _currentPage = page;
+            _ = ApplyFilters();
+        }
+    }
+
+    private void ViewDocument(Document document)
+    {
+        Navigation.NavigateTo($"/document/{document.Id}");
+    }
+
+    private async Task DownloadDocument(Document document)
+    {
+        try
+        {
+            var downloadUrl = await DocumentSource.GetDownloadUrlAsync(document.StoragePath, TimeSpan.FromMinutes(5));
+            Navigation.NavigateTo(downloadUrl, forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error downloading document: {DocumentId}", document.Id);
+        }
+    }
+
+    private async Task DeleteDocument(Document document)
+    {
+        try
+        {
+            Logger.LogInformation("Deleting document: {DocumentId} - {FileName}", document.Id, document.FileName);
+            
+            // First, clean up any processing queue entries for this document
+            using var scope = ServiceProvider.CreateScope();
+            var processingQueueRepo = scope.ServiceProvider.GetService<IProcessingQueueRepository>();
+            
+            if (processingQueueRepo != null)
+            {
+                try
+                {
+                    var queueItems = await processingQueueRepo.GetByDocumentIdAsync(document.Id);
+                    foreach (var queueItem in queueItems)
+                    {
+                        Logger.LogInformation("Removing processing queue item: {QueueId}", queueItem.Id);
+                        await processingQueueRepo.DeleteAsync(queueItem.Id);
+                    }
+                }
+                catch (Exception queueEx)
+                {
+                    Logger.LogWarning(queueEx, "Error cleaning up processing queue for document: {DocumentId}", document.Id);
+                }
+            }
+            
+            // Delete the document from the repository (soft delete)
+            await DocumentRepository.SoftDeleteAsync(document.Id);
+            
+            // Delete the physical file
+            try
+            {
+                await DocumentSource.DeleteDocumentAsync(document.StoragePath);
+            }
+            catch (Exception fileEx)
+            {
+                Logger.LogWarning(fileEx, "Error deleting physical file for document: {DocumentId}", document.Id);
+            }
+            
+            Logger.LogInformation("Successfully deleted document: {DocumentId}", document.Id);
+            await LoadDocuments();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting document: {DocumentId}", document.Id);
+        }
+    }
+
+    private void ToggleSelection(Guid documentId)
+    {
+        if (_selectedDocuments.Contains(documentId))
+            _selectedDocuments.Remove(documentId);
+        else
+            _selectedDocuments.Add(documentId);
+    }
+
+    private void SelectAll(ChangeEventArgs e)
+    {
+        if ((bool)(e.Value ?? false))
+        {
+            foreach (var doc in _pagedDocuments)
+                _selectedDocuments.Add(doc.Id);
+        }
+        else
+        {
+            _selectedDocuments.Clear();
+        }
+    }
+
+    private void ClearSelection()
+    {
+        _selectedDocuments.Clear();
+    }
+
+    private async Task BulkDownload()
+    {
+        // Implement bulk download logic
+        await Task.CompletedTask;
+    }
+
+    private async Task BulkDelete()
+    {
+        try
+        {
+            foreach (var docId in _selectedDocuments)
+            {
+                var doc = _documents.FirstOrDefault(d => d.Id == docId);
+                if (doc != null)
+                {
+                    await DocumentRepository.DeleteAsync(docId);
+                    await DocumentSource.DeleteDocumentAsync(doc.StoragePath);
+                }
+            }
+            _selectedDocuments.Clear();
+            await LoadDocuments();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during bulk delete");
+        }
+    }
+
+    private string GetFileIcon(string contentType)
+    {
+        return contentType?.ToLower() switch
+        {
+            var ct when ct?.Contains("pdf") == true => "bi-file-earmark-pdf-fill",
+            var ct when ct?.Contains("word") == true || ct?.Contains("doc") == true => "bi-file-earmark-word-fill",
+            var ct when ct?.Contains("excel") == true || ct?.Contains("spreadsheet") == true => "bi-file-earmark-excel-fill",
+            var ct when ct?.Contains("image") == true => "bi-file-earmark-image-fill",
+            var ct when ct?.Contains("audio") == true || ct?.Contains("mp3") == true => "bi-file-earmark-music-fill",
+            var ct when ct?.Contains("text") == true => "bi-file-earmark-text-fill",
+            _ => "bi-file-earmark-fill"
+        };
+    }
+
+    private string GetFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        int order = 0;
+        double size = bytes;
+        
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private string GetStatusColor(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Pending => "warning",
+            DocumentStatus.Queued => "primary",
+            DocumentStatus.Processing => "info",
+            DocumentStatus.Processed => "success",
+            DocumentStatus.Failed => "danger",
+            _ => "secondary"
+        };
+    }
+    
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+}
