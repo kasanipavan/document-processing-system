@@ -21,8 +21,8 @@ public static class InfrastructureServiceCollectionExtensions
     {
         // Add Entity Framework
         // To switch to Local SQL Server, comment out the line below and uncomment the next line
-        //services.AddDbContext<ApplicationDbContext>(options =>  options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
-         services.AddDbContext<ApplicationDbContext>(options =>   options.UseSqlServer(configuration.GetConnectionString("LocalSqlServer")));
+        services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        //services.AddDbContext<ApplicationDbContext>(options =>   options.UseSqlServer(configuration.GetConnectionString("LocalSqlServer")));
 
         // Register repositories
         services.AddScoped<IDocumentRepository, DocumentRepository>();
