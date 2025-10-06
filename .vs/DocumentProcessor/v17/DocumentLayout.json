@@ -3,16 +3,28 @@
   "WorkspaceRootPath": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{AABBB9DE-0F79-4939-852A-F193E4C617B3}|src\\DocumentProcessor.Web\\DocumentProcessor.Web.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.web\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{AABBB9DE-0F79-4939-852A-F193E4C617B3}|src\\DocumentProcessor.Web\\DocumentProcessor.Web.csproj|solutionrelative:src\\documentprocessor.web\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{AABBB9DE-0F79-4939-852A-F193E4C617B3}|src\\DocumentProcessor.Web\\DocumentProcessor.Web.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.web\\components\\app.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{AABBB9DE-0F79-4939-852A-F193E4C617B3}|src\\DocumentProcessor.Web\\DocumentProcessor.Web.csproj|solutionrelative:src\\documentprocessor.web\\components\\app.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.infrastructure\\infrastructureservicecollectionextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|solutionrelative:src\\documentprocessor.infrastructure\\infrastructureservicecollectionextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{AABBB9DE-0F79-4939-852A-F193E4C617B3}|src\\DocumentProcessor.Web\\DocumentProcessor.Web.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.web\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{AABBB9DE-0F79-4939-852A-F193E4C617B3}|src\\DocumentProcessor.Web\\DocumentProcessor.Web.csproj|solutionrelative:src\\documentprocessor.web\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{0EFDC9FD-4399-4BA7-A3DC-54CF469959FA}|src\\DocumentProcessor.Core\\DocumentProcessor.Core.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.core\\documentprocessor.core.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{0EFDC9FD-4399-4BA7-A3DC-54CF469959FA}|src\\DocumentProcessor.Core\\DocumentProcessor.Core.csproj|solutionrelative:src\\documentprocessor.core\\documentprocessor.core.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.infrastructure\\documentprocessor.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|solutionrelative:src\\documentprocessor.infrastructure\\documentprocessor.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{311C698A-78D5-4CD6-B08C-6AD5C481F0AB}|src\\DocumentProcessor.Application\\DocumentProcessor.Application.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.application\\documentprocessor.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{311C698A-78D5-4CD6-B08C-6AD5C481F0AB}|src\\DocumentProcessor.Application\\DocumentProcessor.Application.csproj|solutionrelative:src\\documentprocessor.application\\documentprocessor.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{AABBB9DE-0F79-4939-852A-F193E4C617B3}|src\\DocumentProcessor.Web\\DocumentProcessor.Web.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.web\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{AABBB9DE-0F79-4939-852A-F193E4C617B3}|src\\DocumentProcessor.Web\\DocumentProcessor.Web.csproj|solutionrelative:src\\documentprocessor.web\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.infrastructure\\ai\\databaseprocessingqueue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -76,6 +88,10 @@
     {
       "AbsoluteMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.infrastructure\\repositories\\processingqueuerepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|solutionrelative:src\\documentprocessor.infrastructure\\repositories\\processingqueuerepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|c:\\users\\administrator\\source\\repos\\document-processing-system\\src\\documentprocessor.infrastructure\\storedprocedures.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
+      "RelativeMoniker": "D:0:0:{1FB4024B-1684-46D1-9424-7DDEE890238C}|src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj|solutionrelative:src\\documentprocessor.infrastructure\\storedprocedures.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
     }
   ],
   "DocumentGroupContainers": [
@@ -85,7 +101,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -97,31 +113,46 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
-              "Title": "DocumentSourceFactory.cs",
-              "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Providers\\DocumentSourceFactory.cs",
-              "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Providers\\DocumentSourceFactory.cs",
-              "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Providers\\DocumentSourceFactory.cs",
-              "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Providers\\DocumentSourceFactory.cs",
+              "DocumentIndex": 0,
+              "Title": "App.razor",
+              "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Web\\Components\\App.razor",
+              "RelativeDocumentMoniker": "src\\DocumentProcessor.Web\\Components\\App.razor",
+              "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Web\\Components\\App.razor",
+              "RelativeToolTip": "src\\DocumentProcessor.Web\\Components\\App.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-10-06T17:51:49.777Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DocumentProcessor.Infrastructure",
+              "DocumentMoniker": "C:\\Users\\Administrator\\Source\\Repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj",
+              "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj",
+              "ToolTip": "C:\\Users\\Administrator\\Source\\Repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj",
+              "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\DocumentProcessor.Infrastructure.csproj",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-31T15:52:32.757Z"
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-03T16:07:40.504Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DocumentProcessor.Core",
+              "DocumentMoniker": "C:\\Users\\Administrator\\Source\\Repos\\document-processing-system\\src\\DocumentProcessor.Core\\DocumentProcessor.Core.csproj",
+              "RelativeDocumentMoniker": "src\\DocumentProcessor.Core\\DocumentProcessor.Core.csproj",
+              "ToolTip": "C:\\Users\\Administrator\\Source\\Repos\\document-processing-system\\src\\DocumentProcessor.Core\\DocumentProcessor.Core.csproj",
+              "RelativeToolTip": "src\\DocumentProcessor.Core\\DocumentProcessor.Core.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-03T16:07:28.171Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 9,
-              "Title": "ApplicationDbContextModelSnapshot.cs",
-              "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Migrations\\ApplicationDbContextModelSnapshot.cs",
-              "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Migrations\\ApplicationDbContextModelSnapshot.cs",
-              "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Migrations\\ApplicationDbContextModelSnapshot.cs",
-              "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Migrations\\ApplicationDbContextModelSnapshot.cs",
-              "ViewState": "AgIAAFQDAAAAAAAAAAAAAGIDAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-31T15:51:49.742Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
               "Title": "DocumentMetadataRepository.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentMetadataRepository.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentMetadataRepository.cs",
@@ -129,23 +160,25 @@
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentMetadataRepository.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-17T19:28:22.377Z"
+              "WhenOpened": "2025-09-17T19:28:22.377Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 13,
               "Title": "20250831013103_InitialCreate.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Migrations\\20250831013103_InitialCreate.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Migrations\\20250831013103_InitialCreate.cs",
               "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Migrations\\20250831013103_InitialCreate.cs",
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Migrations\\20250831013103_InitialCreate.cs",
-              "ViewState": "AgIAACQCAAAAAAAAAAAAABQAAABuAAAAAAAAAA==",
+              "ViewState": "AgIAACECAAAAAAAAAIBJwBQAAABuAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-31T15:50:45.822Z"
+              "WhenOpened": "2025-08-31T15:50:45.822Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 15,
               "Title": "st4etafu..sql",
               "DocumentMoniker": "C:\\Users\\aes\\AppData\\Local\\Temp\\st4etafu..sql",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\aes\\AppData\\Local\\Temp\\st4etafu..sql",
@@ -156,60 +189,84 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Web\\appsettings.json",
-              "RelativeDocumentMoniker": "src\\DocumentProcessor.Web\\appsettings.json",
-              "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Web\\appsettings.json",
-              "RelativeToolTip": "src\\DocumentProcessor.Web\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAWAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-08-31T15:27:26.241Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 1,
               "Title": "InfrastructureServiceCollectionExtensions.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\InfrastructureServiceCollectionExtensions.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\InfrastructureServiceCollectionExtensions.cs",
               "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\InfrastructureServiceCollectionExtensions.cs",
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\InfrastructureServiceCollectionExtensions.cs",
-              "ViewState": "AgIAAAUAAAAAAAAAAAArwBsAAABGAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHgAAABaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-08-31T15:52:52.682Z",
               "EditorCaption": ""
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "DocumentProcessor.Application",
+              "DocumentMoniker": "C:\\Users\\Administrator\\Source\\Repos\\document-processing-system\\src\\DocumentProcessor.Application\\DocumentProcessor.Application.csproj",
+              "RelativeDocumentMoniker": "src\\DocumentProcessor.Application\\DocumentProcessor.Application.csproj",
+              "ToolTip": "C:\\Users\\Administrator\\Source\\Repos\\document-processing-system\\src\\DocumentProcessor.Application\\DocumentProcessor.Application.csproj",
+              "RelativeToolTip": "src\\DocumentProcessor.Application\\DocumentProcessor.Application.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-03T16:08:16.202Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Web\\Program.cs",
-              "RelativeDocumentMoniker": "src\\DocumentProcessor.Web\\Program.cs",
-              "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Web\\Program.cs",
-              "RelativeToolTip": "src\\DocumentProcessor.Web\\Program.cs",
-              "ViewState": "AgIAAAQAAACAmZmZmZkRwBYAAAAeAAAAAAAAAA==",
+              "DocumentIndex": 5,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Web\\appsettings.json",
+              "RelativeDocumentMoniker": "src\\DocumentProcessor.Web\\appsettings.json",
+              "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Web\\appsettings.json",
+              "RelativeToolTip": "src\\DocumentProcessor.Web\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAMDMzMzPrvwsAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-08-31T15:27:26.241Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "ApplicationDbContextModelSnapshot.cs",
+              "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Migrations\\ApplicationDbContextModelSnapshot.cs",
+              "ViewState": "AgIAAFEDAAAAAAAAAIBJwGIDAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-29T16:45:00.455Z"
+              "WhenOpened": "2025-08-31T15:51:49.742Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "StoredProcedures.sql",
+              "DocumentIndex": 21,
+              "Title": "DocumentSourceFactory.cs",
+              "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Providers\\DocumentSourceFactory.cs",
+              "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Providers\\DocumentSourceFactory.cs",
+              "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Providers\\DocumentSourceFactory.cs",
+              "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Providers\\DocumentSourceFactory.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-31T15:52:32.757Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "StoredProcedures.sql ",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\StoredProcedures.sql",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\StoredProcedures.sql",
               "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\StoredProcedures.sql",
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\StoredProcedures.sql",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2025-09-17T19:25:15.483Z"
+              "WhenOpened": "2025-09-17T19:25:15.483Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 6,
               "Title": "DatabaseProcessingQueue.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\AI\\DatabaseProcessingQueue.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\AI\\DatabaseProcessingQueue.cs",
@@ -217,11 +274,12 @@
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\AI\\DatabaseProcessingQueue.cs",
               "ViewState": "AgIAAAYAAAAAAAAAAAAgwFIAAAA+AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-18T16:52:34.438Z"
+              "WhenOpened": "2025-09-18T16:52:34.438Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 8,
               "Title": "DocumentRepository.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentRepository.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentRepository.cs",
@@ -229,23 +287,25 @@
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentRepository.cs",
               "ViewState": "AgIAAMEAAAAAAAAAAAAUwNUAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-31T07:06:01.562Z"
+              "WhenOpened": "2025-08-31T07:06:01.562Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 10,
               "Title": "StoredProcedureInitializer.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Data\\StoredProcedureInitializer.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Data\\StoredProcedureInitializer.cs",
               "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Data\\StoredProcedureInitializer.cs",
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Data\\StoredProcedureInitializer.cs",
-              "ViewState": "AgIAABEAAAAAAAAAAAAQwBQAAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAABEAAAAAAAAAAAAxwBQAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-31T15:53:15.362Z"
+              "WhenOpened": "2025-08-31T15:53:15.362Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 20,
               "Title": "ApplicationDbContextFactory.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Data\\ApplicationDbContextFactory.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Data\\ApplicationDbContextFactory.cs",
@@ -253,11 +313,12 @@
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Data\\ApplicationDbContextFactory.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-02T15:55:46.623Z"
+              "WhenOpened": "2025-09-02T15:55:46.623Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 7,
               "Title": "DocumentTypeRepository.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentTypeRepository.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentTypeRepository.cs",
@@ -265,23 +326,25 @@
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Repositories\\DocumentTypeRepository.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-31T07:07:03.109Z"
+              "WhenOpened": "2025-08-31T07:07:03.109Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 11,
               "Title": "ApplicationDbContext.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Data\\ApplicationDbContext.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Data\\ApplicationDbContext.cs",
               "ToolTip": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Data\\ApplicationDbContext.cs",
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Data\\ApplicationDbContext.cs",
-              "ViewState": "AgIAAPgAAAAAAAAAAAAAALYAAAAIAAAAAAAAAA==",
+              "ViewState": "AgIAAPUAAAAAAAAAAABQwLYAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-02T16:01:03.917Z"
+              "WhenOpened": "2025-09-02T16:01:03.917Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 16,
               "Title": "n4ods0vj..sql",
               "DocumentMoniker": "C:\\Users\\aes\\AppData\\Local\\Temp\\n4ods0vj..sql",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\aes\\AppData\\Local\\Temp\\n4ods0vj..sql",
@@ -292,7 +355,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 17,
               "Title": "yr3kmgau..sql",
               "DocumentMoniker": "C:\\Users\\aes\\AppData\\Local\\Temp\\yr3kmgau..sql",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\aes\\AppData\\Local\\Temp\\yr3kmgau..sql",
@@ -303,7 +366,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 18,
               "Title": "siatsn50..sql",
               "DocumentMoniker": "C:\\Users\\aes\\AppData\\Local\\Temp\\siatsn50..sql",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\aes\\AppData\\Local\\Temp\\siatsn50..sql",
@@ -314,7 +377,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 19,
               "Title": "sgp41vzn..sql",
               "DocumentMoniker": "C:\\Users\\aes\\AppData\\Local\\Temp\\sgp41vzn..sql",
               "RelativeDocumentMoniker": "..\\..\\..\\..\\aes\\AppData\\Local\\Temp\\sgp41vzn..sql",
@@ -325,7 +388,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 22,
               "Title": "ProcessingQueueRepository.cs",
               "DocumentMoniker": "C:\\Users\\Administrator\\source\\repos\\document-processing-system\\src\\DocumentProcessor.Infrastructure\\Repositories\\ProcessingQueueRepository.cs",
               "RelativeDocumentMoniker": "src\\DocumentProcessor.Infrastructure\\Repositories\\ProcessingQueueRepository.cs",
@@ -333,11 +396,8 @@
               "RelativeToolTip": "src\\DocumentProcessor.Infrastructure\\Repositories\\ProcessingQueueRepository.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-31T07:07:20.542Z"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+              "WhenOpened": "2025-08-31T07:07:20.542Z",
+              "EditorCaption": ""
             }
           ]
         },
