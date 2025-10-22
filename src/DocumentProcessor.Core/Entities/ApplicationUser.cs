@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DocumentProcessor.Core.Entities
 {
@@ -28,15 +30,24 @@ namespace DocumentProcessor.Core.Entities
         public bool IsActive { get; set; } = true;
     }
 
+    [Table("useractivitylogs", Schema = "documentprocessor_dbo")]
     public class UserActivityLog
     {
+        [Key]
+        [Column("id")]
         public Guid Id { get; set; }
+        [Column("userid")]
         public string UserId { get; set; } = null!;
         public ApplicationUser User { get; set; } = null!;
+        [Column("activity")]
         public string Activity { get; set; } = null!;
+        [Column("details")]
         public string? Details { get; set; }
+        [Column("ipaddress")]
         public string? IpAddress { get; set; }
+        [Column("useragent")]
         public string? UserAgent { get; set; }
+        [Column("timestamp")]
         public DateTime Timestamp { get; set; }
     }
 }
